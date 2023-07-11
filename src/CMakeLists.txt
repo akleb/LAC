@@ -31,7 +31,7 @@ target_include_directories(LAC PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-# We want to export our library target, with where everything is installed
+# We want to export our library target, tracks where everything is installed
 install(TARGETS LAC EXPORT LAC_Exports
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -92,7 +92,7 @@ install(
 #  Install Headers
 # ------------------
 install(
-  DIRECTORY ${LAC_INC_DIR} 
+  DIRECTORY ${LAC_INC_DIR}/
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   COMPONENT Devel
 )
