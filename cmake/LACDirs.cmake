@@ -1,6 +1,5 @@
-set(TOPDIR ${CMAKE_SOURCE_DIR})
+set(LAC_TOPDIR ${CMAKE_SOURCE_DIR})
 
-set(LAC_INC ${TOPDIR}/include ${MPI_CXX_INCLUDE_PATH})
-set(LAC_DIR ${TOPDIR}/src)
-
-set(LIBS LACookbook)
+set(LAC_INC_DIR ${LAC_TOPDIR}/include)
+set(LAC_SRC_DIR ${LAC_TOPDIR}/src)
+set(LAC_LIBS LAC)

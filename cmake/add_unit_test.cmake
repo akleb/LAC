@@ -6,9 +6,9 @@ macro(add_unit_test name)
     target_compile_options(${name} PRIVATE -g3
                                    PRIVATE -O0)
 
-    target_include_directories(${name} PRIVATE ${LAC_INC})
+    target_include_directories(${name} PRIVATE ${LAC_INC_DIR} ${MPI_CXX_INCLUDE_DIRS})
     # link to the appropriate libraries
-    target_link_libraries(${name} ${LIBS})
+    target_link_libraries(${name} ${LAC_LIBS})
     
     add_test(NAME ${name}
             COMMAND ${name}

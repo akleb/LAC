@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(LACookbook VERSION 0.0.0)
+project(LAC VERSION 0.0.0)
 
 enable_language(CXX)
 

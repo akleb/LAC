@@ -9,4 +9,10 @@
  *
  */
 
+#ifndef _LAC_ERROR_HPP_
+#define _LAC_ERROR_HPP_
+
 #define lac_OK 0
+
+#endif
+

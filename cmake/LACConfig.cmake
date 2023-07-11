@@ -1,0 +1,3 @@
+include("${CMAKE_CURRENT_LIST_DIR}/LACTargets.cmake")
+
+set(LAC_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR})

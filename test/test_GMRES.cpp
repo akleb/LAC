@@ -9,7 +9,7 @@
  *
  */
 
-#include "lac_LinearAlgebra.hpp"
+#include "lac_GMRES.hpp"
 #include "unit_test_framework.h"
 
 struct Identity{
