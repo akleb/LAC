@@ -10,24 +10,24 @@
  */
 
 #include "lac_GMRES.hpp"
+#include "lac_Structs.hpp"
 #include "unit_test_framework.h"
 
-struct Identity{
-private:
-  int n;
-
+struct Identity : public lac_MatrixFreeLinearSystem{
 public:
-  Identity(int n_) : n(n_){};
+  Identity(int n_) : n(n_) {};
 
-  int MatVecProd(const double *x, double *b){
-    std::memcpy(b, x, sizeof(double)*n);
+  int MatVecProd(const double *x, double *Ax) override{
+    std::memcpy(Ax, x, sizeof(double)*n);
     return lac_OK;
   } // MatVecProd
 
-  int RightPrecondition(double *x, double *Mx){
+  int RightPrecondition(const double *x, double *Mx) override{
     std::memcpy(Mx, x, sizeof(double)*n);
     return lac_OK;
   } // RightMInverse
+private:
+  int n;
 };
 
 #define N 10
@@ -52,14 +52,14 @@ TEST(test_identity){
 } // test_identity
 #undef N
 
-struct Diffusion{
+struct Diffusion : lac_MatrixFreeLinearSystem{
 private:
   int n;
 
 public:
   Diffusion(int n_): n(n_) {if (n<=2) exit(1);};
 
-  int MatVecProd(const double *x, double *b){
+  int MatVecProd(const double *x, double *b) override{
     b[0] = 2*x[0] - x[1] - x[n - 1];
     b[n-1] = 2*x[n-1] -x[n-2] + x[0];
     for (int i = 1; i < n-1; ++i)
@@ -68,7 +68,7 @@ public:
   } // MatVecProd
 
   // Diagonal preconditioning
-  int RightPrecondition(double *x, double *Mx){
+  int RightPrecondition(const double *x, double *Mx) override{
     
     Mx[0] = 0.5*x[0] + 0.25*(x[n-1] + x[1]);
     Mx[n-1] = 0.5*x[n-1] + 0.25*(x[n-2] + x[0]);
@@ -112,3 +112,4 @@ TEST(test_diffusion){
 #undef N
 
 TEST_MAIN()
+
