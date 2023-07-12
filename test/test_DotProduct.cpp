@@ -11,6 +11,7 @@
 
 #include "unit_test_framework.h"
 #include "lac_MatrixMath.hpp"
+#include "lac_Error.hpp"
 #include <cstring>
 
 TEST(test_zero){
@@ -26,10 +27,16 @@ TEST(test_zero){
 
   double dot;
 
-  lac_DotProduct(a, b, N, &dot);
+  int ierr = lac_DotProduct(a, b, N, &dot);
+  if (ierr != lac_OK){
+    ASSERT_FALSE(true);
+  } // if
   ASSERT_ALMOST_EQUAL(dot, 0, 1e-12);
 
-  lac_DotProduct(b, a, N, &dot);
+  ierr = lac_DotProduct(b, a, N, &dot);
+  if (ierr != lac_OK){
+    ASSERT_FALSE(true);
+  } // if
   ASSERT_ALMOST_EQUAL(dot, 0, 1e-12);
 
   delete[] a;
@@ -52,11 +59,19 @@ TEST(test_transpose){
 
   double dot, dot_T;
 
-  lac_DotProduct(a, b, N, &dot);
-  lac_DotProduct(b, a, N, &dot_T);
+  int ierr = lac_DotProduct(a, b, N, &dot);
+  if (ierr != lac_OK){
+    ASSERT_FALSE(true);
+  } // if
+  ierr = lac_DotProduct(b, a, N, &dot_T);
+  if (ierr != lac_OK){
+    ASSERT_FALSE(true);
+  } // if
 
   ASSERT_ALMOST_EQUAL(dot, dot_T, 1e-12);
 
+  delete[] a;
+  delete[] b;
   return;
 
 } // test_transpose
@@ -67,7 +82,10 @@ TEST(test_basic){
   double b[4] = {0.5, 1, 0.3, -0.1};
 
   double dot;
-  lac_DotProduct(a, b, 4, &dot);
+  int ierr = lac_DotProduct(a, b, 4, &dot);
+  if (ierr != lac_OK){
+    ASSERT_FALSE(true);
+  } // if
   ASSERT_ALMOST_EQUAL(dot, 1.2, 1e-12);
 
   return;
