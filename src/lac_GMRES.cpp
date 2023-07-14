@@ -45,12 +45,20 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F){
 
 } // lac_GivensRotation
   
+#ifndef _LAC_GMRES_CLEANUP
+#define _LAC_GMRES_CLEANUP { \
+        delete[] r;           \
+        delete[] K;           \
+        delete[] H;           \
+        delete[] e;           \
+        delete[] F;           \
+        delete[] y;           \
+        delete[] temp;        \
+        return ierr;          \
+    }
 int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, const int nRst, 
                const double tol, const bool precondition, double *x, 
                bool verbose){
-
-  int ierr;
-  double r_norm = HUGE_VAL;
 
   // Used to update the value of x
   double *r = new double[n];
@@ -66,8 +74,19 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
   double *y = new double[nRst];
 
   double *temp = new double[n];
+
+  int ierr;
+  // compute the initial linear residual norm
+  obj->MatVecProd(x, temp);
+  for (int ii = 0; ii < n; ++ii)
+    temp[ii] -= b[ii];
+  double r_norm, init_r_norm;
+  ierr = lac_L2Norm(temp, n, &init_r_norm);
+  r_norm = init_r_norm;
+  const double target_norm = init_r_norm * tol;
+
   int nOuter = 0;
-  while (r_norm > tol){
+  while (r_norm > target_norm){
     std::memset(K, 0, sizeof(double)*n*(nRst+1));
     std::memset(H, 0, sizeof(double)*nRst*(nRst+1));
     std::memset(e, 0, sizeof(double)*(nRst + 1));
@@ -81,18 +100,9 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
       K[ii] = b[ii] - K[ii];
     // compute the current residual from this and initialize e with it
     ierr = lac_L2Norm(K, n, &r_norm);
-    if (ierr != lac_OK){
-      delete[] r;
-      delete[] K;
-      delete[] H;
-      delete[] e;
-      delete[] F;
-      delete[] y;
-      delete[] temp;
-      return ierr;
-    } // if
+    if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
      
-    if (r_norm <= tol)
+    if (r_norm <= 1e-16)
       break;
     for (int ii = 0; ii < n; ++ii)
       K[ii] /= r_norm;
@@ -104,69 +114,25 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
       // column starts with the matrix multiply
       if (precondition){
         ierr = obj->RightPrecondition(K + n*col, temp);
-        if (ierr != lac_OK){
-          delete[] r;
-          delete[] K;
-          delete[] H;
-          delete[] e;
-          delete[] F;
-          delete[] y;
-          delete[] temp;
-          return ierr;
-        } // if
+        if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
         ierr = obj->MatVecProd(temp, K + n*(col+1));
-        if (ierr != lac_OK){
-          delete[] r;
-          delete[] K;
-          delete[] H;
-          delete[] e;
-          delete[] F;
-          delete[] y;
-          delete[] temp;
-          return ierr;
-        } // if
+        if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
       } // if
       else{
         ierr = obj->MatVecProd(K + n*col, K + n*(col+1));
-        if (ierr != lac_OK){
-          delete[] r;
-          delete[] K;
-          delete[] H;
-          delete[] e;
-          delete[] F;
-          delete[] y;
-          delete[] temp;
-          return ierr;
-        } // if
+        if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
       } // else
       // MGS to make it orthogonal
       for (int row = 0; row < col + 1; ++row){
         ierr = lac_DotProduct(K + n*row, K + n*(col+1), n, H + (nRst+1)*col + row);
-        if (ierr != lac_OK){
-          delete[] r;
-          delete[] K;
-          delete[] H;
-          delete[] e;
-          delete[] F;
-          delete[] y;
-          delete[] temp;
-          return ierr;
-        } // if
+        if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
 
         for (int ii = 0; ii < n; ++ii)
           K[n*(col+1) + ii] -= H[(nRst+1)*col + row] * K[n*row + ii];
       } // for
       ierr = lac_L2Norm(K + n*(col+1), n, H + (nRst+1)*col + col + 1);
-      if (ierr != lac_OK){
-        delete[] r;
-        delete[] K;
-        delete[] H;
-        delete[] e;
-        delete[] F;
-        delete[] y;
-        delete[] temp;
-        return ierr;
-      } // if
+      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
+
       // normalize the Krylov subspace column
       for (int row = 0; row < n; ++row){
         K[n*(col+1) + row] /= H[(nRst+1)*col + col + 1];
@@ -175,23 +141,14 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
       // Perform the Givens rotation on the last column we added to H for Least
       // Squares
       ierr = lac_GivensRotation(col, H + (nRst+1)*col, e, F);
-      if (ierr != lac_OK){
-        delete[] r;
-        delete[] K;
-        delete[] H;
-        delete[] e;
-        delete[] F;
-        delete[] y;
-        delete[] temp;
-        return ierr;
-      } // if
+      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
 
       // check if we have already converged
       r_norm = fabs(e[col+1]);
       if (verbose){
         CONT("Outer: %6d Inner: %6d Residual: %16.10e\n", nOuter, col, r_norm);
       } // if
-      if (r_norm <= tol){
+      if (r_norm <= target_norm){
         actual_nRst = col + 1;
         break;
       } // if
@@ -210,28 +167,10 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
 
     // Update the x vector with the computed update
     ierr = lac_MatVecMultCol(K, y, n, actual_nRst, r);
-    if (ierr != lac_OK){
-      delete[] r;
-      delete[] K;
-      delete[] H;
-      delete[] e;
-      delete[] F;
-      delete[] y;
-      delete[] temp;
-      return ierr;
-    } // if
+    if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
     if (precondition){
       ierr = obj->RightPrecondition(r, temp);
-      if (ierr != lac_OK){
-        delete[] r;
-        delete[] K;
-        delete[] H;
-        delete[] e;
-        delete[] F;
-        delete[] y;
-        delete[] temp;
-        return ierr;
-      } // if
+      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
       std::memcpy(r, temp, sizeof(double)*n);
     } // if
     for (int row = 0; row < n; ++row)
@@ -255,4 +194,8 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
   return lac_OK;
 
 } // lac_GMRES
+#undef _LAC_GMRES_CLEANUP
+#else
+#error "_LAC_GMRES_CLEANUP already defined somewhere!"
+#endif
   

@@ -46,7 +46,8 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F);
  * @param b the right hand side we are solving for
  * @param n the number of unkowns
  * @param nRst the number of Krylov vectors to build before reseting
- * @param tol the tolerance to converge the residual to
+ * @param tol the tolerance to converge the residual to relative to initial
+ * linear residual
  * @param precondition true to right precondition, false otherwise
  * @param x the solution vector
  * @param verbose true for extra print out, false for less
