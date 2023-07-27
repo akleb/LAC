@@ -58,7 +58,9 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F){
     }
 int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, const int nRst, 
                const double tol, const bool precondition, double *x, 
-               bool verbose){
+               bool verbose, int *iters){
+
+  if (iters) *iters = 0;
 
   // Used to update the value of x
   double *r = new double[n];
@@ -142,6 +144,7 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
       // Squares
       ierr = lac_GivensRotation(col, H + (nRst+1)*col, e, F);
       if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
+      if (iters) (*iters)++;
 
       // check if we have already converged
       r_norm = fabs(e[col+1]);

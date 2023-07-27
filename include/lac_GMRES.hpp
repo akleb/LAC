@@ -51,10 +51,11 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F);
  * @param precondition true to right precondition, false otherwise
  * @param x the solution vector
  * @param verbose true for extra print out, false for less
+ * @param iters set to the number of interior iterations to solve the system
  */
 int lac_GMRES(lac_MatrixFreeLinearSystem *linSys, const double *b, const int n, const int nRst, 
                const double tol, const bool precondition, double *x, 
-               bool verbose = false);
+               bool verbose = false, int *iters = nullptr);
 
 #endif
 

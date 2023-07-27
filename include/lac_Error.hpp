@@ -14,5 +14,7 @@
 
 #define lac_OK 0
 
+#define lac_SINGULAR_MATRIX 1
+
 #endif
 

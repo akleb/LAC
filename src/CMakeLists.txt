@@ -1,4 +1,5 @@
 set(LAC_SRC     ${LAC_SRC_DIR}/lac_Default.cpp
+                ${LAC_SRC_DIR}/lac_Direct.cpp
                 ${LAC_SRC_DIR}/lac_Error.cpp
                 ${LAC_SRC_DIR}/lac_GMRES.cpp
                 ${LAC_SRC_DIR}/lac_MatrixMath.cpp
