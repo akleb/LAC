@@ -17,7 +17,7 @@
 #include <cmath>
 
 int lac_PLUFactorization(const double *A, const int n, int *P, double *LU){
-  for (unsigned long ii = 0; ii < n; ++ii)
+  for (int ii = 0; ii < n; ++ii)
     P[ii] = ii;
 
   // LU is going to be where we store the upper/lower factorization
@@ -25,11 +25,11 @@ int lac_PLUFactorization(const double *A, const int n, int *P, double *LU){
   std::memcpy(LU, A, sizeof(double)*n*n);
 
   // Loop over the number of equations
-  for (unsigned long ii = 0; ii < n; ++ii) {
+  for (int ii = 0; ii < n; ++ii) {
     // find the max value in current column to be the next row
     double max = 0;
-    unsigned long max_i = n;
-    for (unsigned long row = ii; row < n; ++row) {
+    int max_i = n;
+    for (int row = ii; row < n; ++row) {
       if (fabs(LU[row*n + ii]) > max) {
         max = fabs(LU[row * n + ii]);
         max_i = row;
@@ -37,9 +37,9 @@ int lac_PLUFactorization(const double *A, const int n, int *P, double *LU){
     }   // for max value
     if (max_i == n) {
       ERR("Inverting singular matrix.\n");
-      for (unsigned long row = 0; row < n; ++row) {
+      for (int row = 0; row < n; ++row) {
         CONT("|");
-        for (unsigned long col = 0; col < n; ++col) {
+        for (int col = 0; col < n; ++col) {
           printf(" %10.3e", A[row * n + col]);
         } // for
         printf("|\n");
@@ -60,13 +60,13 @@ int lac_PLUFactorization(const double *A, const int n, int *P, double *LU){
     } // for
 
     // Now the matrix is set up to cancel the first column
-    for (unsigned long row = ii + 1; row < n; ++row)
+    for (int row = ii + 1; row < n; ++row)
       LU[row * n + ii] = LU[row*n + ii] / LU[ii*n + ii];
 
     // Now we update the block matrix at smaller size with the gaussian
     // elimination
-    for (unsigned long row = ii + 1; row < n; ++row) {
-      for (unsigned long col = ii + 1; col < n; ++col) {
+    for (int row = ii + 1; row < n; ++row) {
+      for (int col = ii + 1; col < n; ++col) {
         LU[row*n + col] = LU[row*n + col] - LU[row*n + ii] * LU[ii*n + col];
       } // for columns
     }   // for rows
@@ -81,15 +81,15 @@ int lac_PLUForwardBackwardSub(const double *LU, const int *P, const int n,
 
   // Solving LUx=b
   // Ly = perm*b
-  for (unsigned long row = 0; row < n; ++row) {
+  for (int row = 0; row < n; ++row) {
     x[row] = b[P[row]];
-    for (unsigned long col = 0; col < row; ++col)
+    for (int col = 0; col < row; ++col)
       x[row] -= x[col] * LU[row*n + col];
   } // for
 
   // Ux = y
-  for (unsigned long row = n - 1; row >= 0; --row) {
-    for (unsigned long col = row + 1; col < n; ++col) {
+  for (int row = n - 1; row >= 0; --row) {
+    for (int col = row + 1; col < n; ++col) {
       x[row] -= x[col] * LU[row*n + col];
     } // for columns
     x[row] /= LU[row*n + row];
