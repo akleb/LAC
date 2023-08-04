@@ -69,6 +69,26 @@ TEST(test_3x3) {
 
 } // test_no_perm
 
+TEST(test_inplace) {
+  double A[9] = {-1, 7, 8, 
+                  4, 2, 3, 
+                  3, 0, 1};
+  double correct[9] = {-2./15, 7./15, -1./3,
+                       -1./3, 5./3, -7./3,
+                        2./5, -7./5, 2};
+  double x[3];
+
+  int ierr = lac_InvertMatrix(A, 3, A);
+  if (ierr != lac_OK){ASSERT_TRUE(false)};
+
+  for (int ii = 0; ii < 9; ++ii) {
+    ASSERT_ALMOST_EQUAL(A[ii], correct[ii], 1e-10);
+  } // for
+
+  return;
+
+} // test_inplace
+  
 TEST(test_singular){
   double A[9] = {-1, 7, 8, 4, 2, 3, 3, -21, -24};
   double A_inv[9];
