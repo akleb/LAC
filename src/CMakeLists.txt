@@ -22,6 +22,9 @@ include(GNUInstallDirs)
 # build static library from source files
 add_library(LAC STATIC ${LAC_SRC})
 
+target_include_directories(LAC PRIVATE ${MPI_CXX_INCLUDE_PATH})
+target_link_libraries(LAC ${MPI_CXX_LIBRARIES})
+
 # We want cmake to be able to pickup on the include file locations in downstream
 # projects, so we want PUBLIC includes. When it is built locally the includes
 # are found relative to the project directory structure. When it is installed

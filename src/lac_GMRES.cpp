@@ -11,6 +11,8 @@
 
 #include "lac_GMRES.hpp"
 #include "lac_Error.hpp"
+#include "lac_Norms.hpp"
+#include <mpi.h>
 #include <cmath>
 
 int lac_GivensRotation(const int col, double *H_col, double *e, double *F){
@@ -57,9 +59,10 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F){
         return ierr;          \
     }
 int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, const int nRst, 
-               const double tol, const bool precondition, double *x, 
-               bool verbose, int *iters){
+               const double tol, const bool precondition, double *x,
+               const int size, const int rank, bool verbose, int *iters){
 
+  if (verbose && rank != 0) verbose = false;
   if (iters) *iters = 0;
 
   // Used to update the value of x
@@ -82,28 +85,43 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
   obj->MatVecProd(x, temp);
   for (int ii = 0; ii < n; ++ii)
     temp[ii] -= b[ii];
+
   double r_norm, init_r_norm;
-  ierr = lac_L2Norm(temp, n, &init_r_norm);
+  ierr = (size > 1) ? lac_L2NormAllReduce(temp, n, &init_r_norm) : 
+                               lac_L2Norm(temp, n, &init_r_norm);
+  if (ierr != lac_OK) _LAC_GMRES_CLEANUP; 
   r_norm = init_r_norm;
+
+  // Set the convergence criteria relative to initial linear residual
   const double target_norm = init_r_norm * tol;
 
+  // Start the GMRES iteration
   int nOuter = 0;
   while (r_norm > target_norm){
     std::memset(K, 0, sizeof(double)*n*(nRst+1));
     std::memset(H, 0, sizeof(double)*nRst*(nRst+1));
     std::memset(e, 0, sizeof(double)*(nRst + 1));
     std::memset(F, 0, sizeof(double)*2*nRst);
-    // Previous Givens rotation set to Identity, so it doesn't rotate
 
     // Arnoldi iteration, both K and H are column major
-    // need the first vector as Ax - b
-    obj->MatVecProd(x, K);
+    // need the first vector as Ax - b or AP^-1 x - b
+    if (precondition){
+      ierr = obj->RightPrecondition(x, temp);
+      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
+      ierr = obj->MatVecProd(temp, K);
+      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
+    } // if
+    else{
+      ierr = obj->MatVecProd(x, K);
+      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
+    } // else
     for (int ii = 0; ii < n; ++ii)
       K[ii] = b[ii] - K[ii];
     // compute the current residual from this and initialize e with it
-    ierr = lac_L2Norm(K, n, &r_norm);
+    ierr = (size > 1) ? lac_L2NormAllReduce(K, n, &r_norm) :
+                                 lac_L2Norm(K, n, &r_norm);
     if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
-     
+
     if (r_norm <= 1e-16)
       break;
     for (int ii = 0; ii < n; ++ii)
@@ -124,15 +142,22 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
         ierr = obj->MatVecProd(K + n*col, K + n*(col+1));
         if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
       } // else
+
       // MGS to make it orthogonal
       for (int row = 0; row < col + 1; ++row){
-        ierr = lac_DotProduct(K + n*row, K + n*(col+1), n, H + (nRst+1)*col + row);
+        double dot;
+        ierr = lac_DotProduct(K + n*row, K + n*(col+1), n, &dot);
         if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
+        if (size > 1) 
+          MPI_Allreduce(&dot, H + (nRst+1)*col + row, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        else
+          H[(nRst+1)*col + row] = dot;
 
         for (int ii = 0; ii < n; ++ii)
           K[n*(col+1) + ii] -= H[(nRst+1)*col + row] * K[n*row + ii];
       } // for
-      ierr = lac_L2Norm(K + n*(col+1), n, H + (nRst+1)*col + col + 1);
+      ierr = (size > 1) ? lac_L2NormAllReduce(K + n*(col+1), n, H + (nRst+1)*col + col + 1) :
+                                   lac_L2Norm(K + n*(col+1), n, H + (nRst+1)*col + col + 1);
       if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
 
       // normalize the Krylov subspace column
@@ -171,17 +196,18 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
     // Update the x vector with the computed update
     ierr = lac_MatVecMultCol(K, y, n, actual_nRst, r);
     if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
-    if (precondition){
-      ierr = obj->RightPrecondition(r, temp);
-      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
-      std::memcpy(r, temp, sizeof(double)*n);
-    } // if
     for (int row = 0; row < n; ++row)
       x[row] += r[row];
 
     nOuter++;
 
   } // while not converged
+    
+  if (precondition){
+    ierr = obj->RightPrecondition(x, temp);
+    if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
+    std::memcpy(x, temp, sizeof(double)*n);
+  } // if
 
   delete[] temp;
   delete[] K;
