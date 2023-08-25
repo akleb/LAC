@@ -9,6 +9,7 @@
  *
  */
 
+#include "lac_MPI.hpp"
 #include "lac_Error.hpp"
 #include "lac_Norms.hpp"
 #include "mpi.h"
@@ -25,12 +26,13 @@ int lac_L2Norm(const double *a, const int n, double *norm){
 } // lac_L2Norm
 
 int lac_L2NormAllReduce(const double *a, const int n, double *norm){
-  *norm = 0;
+
   double local_norm = 0;
   for (int ii = 0; ii < n; ++ii)
     local_norm += a[ii]*a[ii];
 
-  MPI_Allreduce(&local_norm, norm, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  *norm = 0;
+  lac_Allreduce(&local_norm, norm, 1, MPI_SUM);
   
   (*norm) = sqrt(*norm);
 
@@ -46,4 +48,14 @@ int lac_L1Norm(const double *a, const int n, double *norm){
   return lac_OK;
 
 } // lac_L1Norm
+
+int lac_L1NormAllReduce(const double *a, const int n, double *norm){
+  double local_norm;
+  lac_L1Norm(a, n, &local_norm);
+
+  lac_Allreduce(&local_norm, norm, 1, MPI_SUM);
+
+  return lac_OK;
+
+} // lac_L1NormAllReduce
 

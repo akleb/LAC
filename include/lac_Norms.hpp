@@ -40,6 +40,15 @@ int lac_L2NormAllReduce(const double *a, const int n, double *norm);
  */
 int lac_L1Norm(const double *a, const int n, double *norm);
 
+/**
+ * @brief computes the L1 norm of a vector across all procs in MPI_COMM_WORLD.
+ * This causes a sync across all procs.
+ *
+ * @param a the vector to compute the L1 norm across
+ * @param n the number of elements in the array on this processor
+ * @param norm where the final reduced sum is stored
+ */
+int lac_L1NormAllReduce(const double *a, const int n, double *norm);
 
 #endif
 

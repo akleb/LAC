@@ -33,6 +33,7 @@ TEST(test_L1){
 
   ASSERT_ALMOST_EQUAL(l1_norm, 0, 1e-12);
 
+  return;
 
 } // test_L1
 
@@ -54,7 +55,8 @@ TEST(test_L2){
 
   ASSERT_ALMOST_EQUAL(l2_norm, 0, 1e-12);
 
+  return;
 
-} // test_L1
+} // test_L2
 
 TEST_MAIN()

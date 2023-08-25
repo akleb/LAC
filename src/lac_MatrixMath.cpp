@@ -9,6 +9,7 @@
  *
  */
 
+#include "lac_MPI.hpp"
 #include "lac_MatrixMath.hpp"
 #include "lac_Error.hpp"
 #include <cstring>
@@ -25,7 +26,8 @@ int lac_MatVecMultCol(const double *A, const double *x, const int n,
 
   return lac_OK;
 
-} // lac_MatVecMultiply
+} // lac_MatVecMultCol
+
 
 int lac_DotProduct(const double *a, const double *b, const int n, double *dot){
   *dot = 0;
@@ -35,4 +37,15 @@ int lac_DotProduct(const double *a, const double *b, const int n, double *dot){
   return lac_OK;
 
 } // lac_DotProduct
+
+int lac_DotProductAllReduce(const double *a, const double *b, const int n, double *dot){
+  double local_dot;
+  int ierr = lac_DotProduct(a, b, n, &local_dot);
+  if (ierr != lac_OK) return ierr;
+  ierr = lac_Allreduce(&local_dot, dot, 1, MPI_SUM);
+  if (ierr != lac_OK) return ierr;
+
+  return lac_OK;
+
+} // lac_DotProductAllReduce
 

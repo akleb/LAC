@@ -33,5 +33,14 @@ int lac_MatVecMultCol(const double *A, const double *x, const int n,
  */
 int lac_DotProduct(const double *a, const double *b, const int n, double *dot);
 
+/**
+ * @brief computes the dot product of a and b across all processors
+ *
+ * @param a first vector
+ * @param b second vector
+ * @param n the size of the vectors
+ * @param dot the dot product of a and b
+ */
+int lac_DotProductAllReduce(const double *a, const double *b, const int n, double *dot);
 
 #endif
