@@ -90,7 +90,7 @@ TEST(test_inplace) {
 } // test_inplace
   
 TEST(test_singular){
-  double A[9] = {-1, 7, 8, 4, 2, 3, 3, -21, -24};
+  double A[9] = {-1, 4, 8, 4, 2, 4, 2, -8, -16};
   double A_inv[9];
 
   int ierr = lac_InvertMatrix(A, 3, A_inv);

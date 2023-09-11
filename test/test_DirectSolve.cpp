@@ -48,9 +48,8 @@ TEST(test_perm) {
 } // test_no_perm
 
 TEST(test_singular){
-  double A[9] = {-1, 7, 8, 4, 2, 3, 3, -21, -24};
+  double A[9] = {-1, 4, 8, 4, 2, 4, 2, -8, -16};
   double b[3] = {-4, 1, 3};
-  double correct[3] = {0, -4, 3};
   double x[3];
 
   int ierr = lac_DirectSolve(A, b, 3, x);
