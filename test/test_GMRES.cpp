@@ -50,7 +50,7 @@ TEST(test_identity){
   double norm, ierr;
 
   std::memset(x, 0, sizeof(double)*N);
-  ierr = lac_GMRES(&identity, b, N, 10, 1e-14, false, x, size, rank);
+  ierr = lac_GMRES(&identity, b, N, 10, 1e-14, 1e4, false, x, size, rank);
 
   ASSERT_EQUAL(ierr, lac_OK);
 
@@ -65,6 +65,33 @@ TEST(test_identity){
   for (int i = 0; i < N; ++i){
     ASSERT_ALMOST_EQUAL(x[i], b[i], 1e-10);
   } // for
+
+  return;
+
+} // test_identity
+#undef N
+
+#define N 10
+TEST(test_error){
+  int rank, size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+  double b[N];
+  srand(rank);
+  for (int i = 0; i < N; ++i)
+    b[i] = (double)rand() / RAND_MAX;
+
+  Identity identity(N);
+
+  double x[N];
+  double b_test[N];
+  double norm, ierr;
+
+  std::memset(x, 0, sizeof(double)*N);
+  ierr = lac_GMRES(&identity, b, N, 10, 1e-14, 0, false, x, size, rank);
+
+  ASSERT_EQUAL(ierr, lac_MAX_ITER);
 
   return;
 
@@ -157,7 +184,7 @@ TEST(test_diffusion){
   for (int i = 0; i < N; ++i)
     x[i] = (double)rand() / RAND_MAX;
 
-  ierr = lac_GMRES(&diff, b, N, 10, 1e-14, false, x, size, rank);
+  ierr = lac_GMRES(&diff, b, N, 10, 1e-14, 1e4, false, x, size, rank);
   ASSERT_EQUAL(ierr, lac_OK);
 
   diff.MatVecProd(x, b_test);
@@ -174,7 +201,7 @@ TEST(test_diffusion){
   srand(rank);
   for (int i = 0; i < N; ++i)
     x[i] = (double)rand() / RAND_MAX;
-  ierr = lac_GMRES(&diff, b, N, 10, 1e-14, true, x, size, rank);
+  ierr = lac_GMRES(&diff, b, N, 10, 1e-14, 1e4, true, x, size, rank);
   ASSERT_EQUAL(ierr, lac_OK);
 
   diff.MatVecProd(x, b_test);

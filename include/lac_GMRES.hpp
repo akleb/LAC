@@ -48,6 +48,8 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F);
  * @param nRst the number of Krylov vectors to build before reseting
  * @param tol the tolerance to converge the residual to relative to initial
  * linear residual
+ * @param max_iter the maximum number of outer iterations GMRES should do before
+ * giving up
  * @param precondition true to right precondition, false otherwise
  * @param x the solution vector
  * @param size the size of the MPI_COMM_WORLD
@@ -56,7 +58,7 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F);
  * @param iters set to the number of interior iterations to solve the system
  */
 int lac_GMRES(lac_MatrixFreeLinearSystem *linSys, const double *b, const int n, const int nRst, 
-               const double tol, const bool precondition, double *x,
+               const double tol, const int max_iter, const bool precondition, double *x,
                const int size = 0, const int rank = 1, bool verbose = false, 
                int *iters = nullptr);
 

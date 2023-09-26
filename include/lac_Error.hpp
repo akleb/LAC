@@ -15,6 +15,7 @@
 #define lac_OK 0
 
 #define lac_SINGULAR_MATRIX 1
+#define lac_MAX_ITER        2
 
 #endif
 

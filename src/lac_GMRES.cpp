@@ -59,7 +59,7 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F){
         return ierr;          \
     }
 int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, const int nRst, 
-               const double tol, const bool precondition, double *x,
+               const double tol, const int max_iter, const bool precondition, double *x,
                const int size, const int rank, bool verbose, int *iters){
 
   if (verbose && rank != 0) verbose = false;
@@ -97,7 +97,7 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
 
   // Start the GMRES iteration
   int nOuter = 0;
-  while (r_norm > target_norm){
+  while (r_norm > target_norm && nOuter < max_iter){
     std::memset(K, 0, sizeof(double)*n*(nRst+1));
     std::memset(H, 0, sizeof(double)*nRst*(nRst+1));
     std::memset(e, 0, sizeof(double)*(nRst + 1));
@@ -173,7 +173,7 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
 
       // check if we have already converged
       r_norm = fabs(e[col+1]);
-      if (verbose){
+      if (verbose && rank == 0){
         CONT("Outer: %6d Inner: %6d Residual: %16.10e\n", nOuter, col, r_norm);
       } // if
       if (r_norm <= target_norm){
@@ -216,11 +216,14 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
   delete[] y;
   delete[] e;
   delete[] F;
-  if (verbose){
-    NOTE("GMRES converged residual: %16.10e\n", r_norm);
+  if (verbose && rank == 0){
+    if (r_norm > target_norm){
+      WARN("Reached maximum number of outer iterations: %d\n", nOuter);
+    } // if
+    NOTE("GMRES converged Abs residual: %16.10e and Rel residual: %16.10e\n", r_norm, r_norm / init_r_norm );
   } // if
 
-  return lac_OK;
+  return (r_norm > target_norm) ? lac_MAX_ITER : lac_OK;
 
 } // lac_GMRES
 #undef _LAC_GMRES_CLEANUP
