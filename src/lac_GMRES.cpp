@@ -82,13 +82,13 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
 
   int ierr;
   // compute the initial linear residual norm
-  obj->MatVecProd(x, temp);
+  obj->MatVecProd(x, r);
   for (int ii = 0; ii < n; ++ii)
-    temp[ii] -= b[ii];
+    r[ii] -= b[ii];
 
   double r_norm, init_r_norm;
-  ierr = (size > 1) ? lac_L2NormAllReduce(temp, n, &init_r_norm) : 
-                               lac_L2Norm(temp, n, &init_r_norm);
+  ierr = (size > 1) ? lac_L2NormAllReduce(r, n, &init_r_norm) : 
+                               lac_L2Norm(r, n, &init_r_norm);
   if (ierr != lac_OK) _LAC_GMRES_CLEANUP; 
   r_norm = init_r_norm;
 
@@ -104,17 +104,8 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
     std::memset(F, 0, sizeof(double)*2*nRst);
 
     // Arnoldi iteration, both K and H are column major
-    // need the first vector as Ax - b or AP^-1 x - b
-    if (precondition){
-      ierr = obj->RightPrecondition(x, temp);
-      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
-      ierr = obj->MatVecProd(temp, K);
-      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
-    } // if
-    else{
-      ierr = obj->MatVecProd(x, K);
-      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
-    } // else
+    ierr = obj->MatVecProd(x, K);
+    if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
     for (int ii = 0; ii < n; ++ii)
       K[ii] = b[ii] - K[ii];
     // compute the current residual from this and initialize e with it
@@ -196,6 +187,13 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
     // Update the x vector with the computed update
     ierr = lac_MatVecMultCol(K, y, n, actual_nRst, r);
     if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
+
+    if (precondition){
+      ierr = obj->RightPrecondition(r, temp);
+      if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
+      std::memcpy(r, temp, sizeof(double)*n);
+    } // if
+
     for (int row = 0; row < n; ++row)
       x[row] += r[row];
 
@@ -203,12 +201,6 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
 
   } // while not converged
     
-  if (precondition){
-    ierr = obj->RightPrecondition(x, temp);
-    if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
-    std::memcpy(x, temp, sizeof(double)*n);
-  } // if
-
   delete[] temp;
   delete[] K;
   delete[] H;
@@ -220,7 +212,7 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
     if (r_norm > target_norm){
       WARN("Reached maximum number of outer iterations: %d\n", nOuter);
     } // if
-    NOTE("GMRES converged Abs residual: %16.10e and Rel residual: %16.10e\n", r_norm, r_norm / init_r_norm );
+    NOTE("GMRES converged relative residual: %16.10e\n", r_norm / init_r_norm );
   } // if
 
   return (r_norm > target_norm) ? lac_MAX_ITER : lac_OK;

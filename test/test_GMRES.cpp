@@ -58,6 +58,7 @@ TEST(test_identity){
   for (int ii = 0; ii < N; ++ii)
     b_test[ii] -= b[ii];
 
+
   lac_L2Norm(b_test, N, &norm);
   ASSERT_TRUE(norm <= 1e-14);
 
@@ -103,29 +104,28 @@ private:
   int n, rank, size;
 
   void GetHalos(const double *x, double *halo_L, double *halo_R){
-    if (size == 1){
-      *halo_L = x[n - 1];
-      *halo_R = x[0];
+    MPI_Request req_in[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+    MPI_Request req_out[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+
+    if (rank == 0){
+      *halo_L = 0;
     } // if
     else{
-      MPI_Request req_in[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
-      MPI_Request req_out[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
-
-      if (rank == 0){
-        MPI_Irecv(halo_L, 1, MPI_DOUBLE, size - 1, 0, MPI_COMM_WORLD, req_in + 0);
-        MPI_Isend(x + 0, 1, MPI_DOUBLE, size - 1, 1, MPI_COMM_WORLD, req_out + 0);
-      } // if
-      else{
-        MPI_Irecv(halo_L, 1, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD, req_in + 0);
-        MPI_Isend(x + 0, 1, MPI_DOUBLE, rank - 1, 1, MPI_COMM_WORLD, req_out + 0);
-      } // else
-        
+      MPI_Irecv(halo_L, 1, MPI_DOUBLE, rank - 1, 0, MPI_COMM_WORLD, req_in + 0);
+      MPI_Isend(x + 0, 1, MPI_DOUBLE, rank - 1, 1, MPI_COMM_WORLD, req_out + 0);
+    } // else
+      
+    if (rank == size - 1){
+      *halo_R = 0;
+    } // if
+    else{
       MPI_Irecv(halo_R, 1, MPI_DOUBLE, (rank + 1) % size, 1, MPI_COMM_WORLD, req_in + 1);
       MPI_Isend(x + n - 1, 1, MPI_DOUBLE, (rank + 1) % size, 0, MPI_COMM_WORLD, req_out + 1);
-
-      MPI_Waitall(2, req_in, MPI_STATUSES_IGNORE);
-      MPI_Waitall(2, req_out, MPI_STATUSES_IGNORE);
     } // else
+
+
+    MPI_Waitall(2, req_in, MPI_STATUSES_IGNORE);
+    MPI_Waitall(2, req_out, MPI_STATUSES_IGNORE);
     
     return;
 
@@ -142,10 +142,7 @@ public:
     GetHalos(x, &halo_L, &halo_R);
 
     b[0] = 2*x[0] - x[1] - halo_L;
-    if (rank == size - 1)
-      b[n-1] = 2*x[n-1] -x[n-2] + halo_R;
-    else 
-      b[n - 1] = 2*x[n-1] - x[n-2] - halo_R;
+    b[n - 1] = 2*x[n-1] - x[n-2] - halo_R;
     for (int i = 1; i < n-1; ++i)
       b[i] = 2*x[i] - x[i-1] - x[i+1];
     return lac_OK;
@@ -184,7 +181,7 @@ TEST(test_diffusion){
   for (int i = 0; i < N; ++i)
     x[i] = (double)rand() / RAND_MAX;
 
-  ierr = lac_GMRES(&diff, b, N, 10, 1e-14, 1e4, false, x, size, rank);
+  ierr = lac_GMRES(&diff, b, N, 10, 1e-14, 1e4, false, x, size, rank, true);
   ASSERT_EQUAL(ierr, lac_OK);
 
   diff.MatVecProd(x, b_test);
@@ -201,7 +198,7 @@ TEST(test_diffusion){
   srand(rank);
   for (int i = 0; i < N; ++i)
     x[i] = (double)rand() / RAND_MAX;
-  ierr = lac_GMRES(&diff, b, N, 10, 1e-14, 1e4, true, x, size, rank);
+  ierr = lac_GMRES(&diff, b, N, 10, 1e-14, 1e4, true, x, size, rank, true);
   ASSERT_EQUAL(ierr, lac_OK);
 
   diff.MatVecProd(x, b_test);
