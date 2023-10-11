@@ -28,6 +28,18 @@ int lac_MatVecMultCol(const double *A, const double *x, const int n,
 
 } // lac_MatVecMultCol
 
+int lac_MatVecMultRow(const double *A, const double *x, const int n, 
+                        const int m, double *b){
+  std::memset(b, 0, sizeof(double)*n);
+  for (int row = 0; row < n; ++row){
+    for (int col = 0; col < m; ++col){
+      b[row] += A[m*row + col] * x[col];
+    } // for
+  } // for
+
+  return lac_OK;
+
+} // lac_MatVecMultRow
 
 int lac_DotProduct(const double *a, const double *b, const int n, double *dot){
   *dot = 0;

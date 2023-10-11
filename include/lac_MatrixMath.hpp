@@ -24,6 +24,17 @@
 int lac_MatVecMultCol(const double *A, const double *x, const int n, 
                         const int m, double *b);
 /**
+ * @brief Computes the matrix vector product Ax -> b
+ *
+ * @param A an n x m row major matrix
+ * @param x a length m vector
+ * @param n the number of rows in A
+ * @param m the number of columns in A
+ * @param b a length n vector set to the product of Ax
+ */
+int lac_MatVecMultRow(const double *A, const double *x, const int n, 
+                        const int m, double *b);
+/**
  * @brief computes the dot product of a and b
  *
  * @param a first vector

@@ -22,26 +22,27 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F){
     const double s = F[2*ii + 1];
     const double u = H_col[ii];
     const double v = H_col[ii+1];
-    H_col[ii] = c*u + s*v;
-    H_col[ii + 1] = -s*u + c*v;
+    H_col[ii] = c*u - s*v;
+    H_col[ii + 1] = s*u + c*v;
   } // for
 
   // compute the Givens rotation to remove the final off diagonal piece
   const double u = H_col[col];
   const double v = H_col[col + 1];
   const double r = hypot(u, v);
-  const double c = F[2*col] = u / r;
-  const double s = F[2*col + 1] = v / r;
+  const double d = 1. / r;
+  const double c = F[2*col] = u * d;
+  const double s = F[2*col + 1] = -v * d;
 
   // rotate the final part of H
-  H_col[col] = c*u + s*v;
-  H_col[col + 1] = -s*u + c*v;
+  H_col[col] = c*u - s*v;
+  H_col[col + 1] = s*u + c*v;
 
   // rotate e as well
   const double e_u = e[col];
   const double e_v = e[col + 1];
-  e[col] = c*e_u + s*e_v;
-  e[col + 1] = -s*e_u + c*e_v;
+  e[col] = c*e_u - s*e_v;
+  e[col + 1] = s*e_u + c*e_v;
 
   return lac_OK;
 
@@ -152,9 +153,8 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
       if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
 
       // normalize the Krylov subspace column
-      for (int row = 0; row < n; ++row){
+      for (int row = 0; row < n; ++row)
         K[n*(col+1) + row] /= H[(nRst+1)*col + col + 1];
-      } // for
 
       // Perform the Givens rotation on the last column we added to H for Least
       // Squares
@@ -201,13 +201,13 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
 
   } // while not converged
     
-  delete[] temp;
+  delete[] r;
   delete[] K;
   delete[] H;
-  delete[] r;
-  delete[] y;
   delete[] e;
   delete[] F;
+  delete[] y;
+  delete[] temp;
   if (verbose && rank == 0){
     if (r_norm > target_norm){
       WARN("Reached maximum number of outer iterations: %d\n", nOuter);
