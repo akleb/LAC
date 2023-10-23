@@ -85,7 +85,7 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
   // compute the initial linear residual norm
   obj->MatVecProd(x, r);
   for (int ii = 0; ii < n; ++ii)
-    r[ii] -= b[ii];
+    r[ii] = b[ii] - r[ii];
 
   double r_norm, init_r_norm;
   ierr = (size > 1) ? lac_L2NormAllReduce(r, n, &init_r_norm) : 
@@ -114,6 +114,9 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
                                  lac_L2Norm(K, n, &r_norm);
     if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
 
+    if (verbose && rank == 0){
+      CONT("Outer: %6d Inner: %6d Residual: %16.10e\n", nOuter, 0, r_norm);
+    } // if
     if (r_norm <= 1e-16)
       break;
     for (int ii = 0; ii < n; ++ii)
@@ -165,7 +168,7 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
       // check if we have already converged
       r_norm = fabs(e[col+1]);
       if (verbose && rank == 0){
-        CONT("Outer: %6d Inner: %6d Residual: %16.10e\n", nOuter, col, r_norm);
+        CONT("Outer: %6d Inner: %6d Residual: %16.10e\n", nOuter, col + 1, r_norm);
       } // if
       if (r_norm <= target_norm){
         actual_nRst = col + 1;
@@ -196,6 +199,14 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
 
     for (int row = 0; row < n; ++row)
       x[row] += r[row];
+
+    obj->MatVecProd(x, r);
+    for (int ii = 0; ii < n; ++ii)
+      r[ii] -= b[ii];
+
+    ierr = (size > 1) ? lac_L2NormAllReduce(r, n, &r_norm) : 
+                                 lac_L2Norm(r, n, &r_norm);
+    if (ierr != lac_OK) _LAC_GMRES_CLEANUP; 
 
     nOuter++;
 
