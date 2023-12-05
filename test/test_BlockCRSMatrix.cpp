@@ -111,6 +111,8 @@ TEST(test_base){
     ASSERT_EQUAL(data[ii], data_place[ii]);
   } // for
 
+  delete[] n_col;
+  delete[] col_index;
   lac_BlockCRSFree(&p_Mat);
   ASSERT_EQUAL(p_Mat, nullptr);
 
