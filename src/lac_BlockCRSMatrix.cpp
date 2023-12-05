@@ -43,7 +43,7 @@ void lac_BlockCRSFree(lac_BlockCRSMatrix **pp_Mat){
   delete[] (*pp_Mat)->data;
   delete[] (*pp_Mat)->n_col;
   delete[] (*pp_Mat)->col_index;
-  delete[] *pp_Mat;
+  delete *pp_Mat;
   *pp_Mat = nullptr;
 
   return;
