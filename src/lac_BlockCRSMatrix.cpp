@@ -16,20 +16,19 @@
 #include <cstring>
 
 void lac_BlockCRSInit(lac_BlockCRSMatrix **pp_Mat, const int n_block, const int n,
-                      const int m, const int n_nzero, const int *col_index, 
-                      const int * n_col){
+                      const int m, const int *col_index, const int *n_col){
   
   *pp_Mat = new lac_BlockCRSMatrix;
-  (*pp_Mat)->n_nzero = n_nzero;
+  (*pp_Mat)->n_nzero = n_col[n];
   (*pp_Mat)->n_block = n_block;
   (*pp_Mat)->n = n;
   (*pp_Mat)->m = m;
 
-  (*pp_Mat)->data = new double[n_block * n_nzero];
-  std::memset((*pp_Mat)->data, 0, sizeof(double) * n_block * n_nzero);
+  (*pp_Mat)->data = new double[n_block * n_col[n]];
+  std::memset((*pp_Mat)->data, 0, sizeof(double) * n_block * n_col[n]);
 
-  (*pp_Mat)->col_index = new int[n_nzero];
-  std::memcpy((*pp_Mat)->col_index, col_index, sizeof(int) * n_nzero);
+  (*pp_Mat)->col_index = new int[n_col[n]];
+  std::memcpy((*pp_Mat)->col_index, col_index, sizeof(int) * n_col[n]);
 
   (*pp_Mat)->n_col = new int[n + 1];
   std::memcpy((*pp_Mat)->n_col, n_col, sizeof(int) * (n + 1));
