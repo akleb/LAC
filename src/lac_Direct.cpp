@@ -36,9 +36,9 @@ int lac_PLUFactorization(const double *A, const int n, int *P, double *LU){
       } // if
     }   // for max value
     if (max_i == n) {
-      ERR("Inverting singular matrix.\n");
+      LAC_ERR("Inverting singular matrix.\n");
       for (int row = 0; row < n; ++row) {
-        CONT("|");
+        LAC_CONT("|");
         for (int col = 0; col < n; ++col) {
           printf(" %10.3e", A[row * n + col]);
         } // for

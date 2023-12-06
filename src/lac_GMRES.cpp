@@ -115,7 +115,7 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
     if (ierr != lac_OK) _LAC_GMRES_CLEANUP;
 
     if (verbose && rank == 0){
-      CONT("Outer: %6d Inner: %6d Residual: %16.10e\n", nOuter, 0, r_norm);
+      LAC_CONT("Outer: %6d Inner: %6d Residual: %16.10e\n", nOuter, 0, r_norm);
     } // if
     if (r_norm <= 1e-16)
       break;
@@ -168,7 +168,7 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
       // check if we have already converged
       r_norm = fabs(e[col+1]);
       if (verbose && rank == 0){
-        CONT("Outer: %6d Inner: %6d Residual: %16.10e\n", nOuter, col + 1, r_norm);
+        LAC_CONT("Outer: %6d Inner: %6d Residual: %16.10e\n", nOuter, col + 1, r_norm);
       } // if
       if (r_norm <= target_norm){
         actual_nRst = col + 1;
@@ -221,9 +221,9 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
   delete[] temp;
   if (verbose && rank == 0){
     if (r_norm > target_norm){
-      WARN("Reached maximum number of outer iterations: %d\n", nOuter);
+      LAC_WARN("Reached maximum number of outer iterations: %d\n", nOuter);
     } // if
-    NOTE("GMRES converged relative residual: %16.10e\n", r_norm / init_r_norm );
+    LAC_NOTE("GMRES converged relative residual: %16.10e\n", r_norm / init_r_norm );
   } // if
 
   return (r_norm > target_norm) ? lac_MAX_ITER : lac_OK;

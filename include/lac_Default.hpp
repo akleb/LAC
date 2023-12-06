@@ -14,10 +14,10 @@
 
 #include <cstdio>
 
-#define ERR   printf("===> ERR: ");printf
-#define NOTE  printf("        o ");printf
-#define CONT  printf("          ");printf
-#define WARN  printf("==> WARN: ");printf
+#define LAC_ERR   printf("===> ERR: ");printf
+#define LAC_NOTE  printf("        o ");printf
+#define LAC_CONT  printf("          ");printf
+#define LAC_WARN  printf("==> WARN: ");printf
 
 #endif
 
