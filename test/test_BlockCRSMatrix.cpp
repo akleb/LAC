@@ -45,7 +45,7 @@ TEST(test_base){
   col_index[8] = 4;
 
   lac_BlockCRSMatrix *p_Mat;
-  lac_BlockCRSInit(&p_Mat, n_block, n, m, n_nzero, col_index, n_col);
+  lac_BlockCRSInit(&p_Mat, n_block, n, m, col_index, n_col);
 
   // ensure that we copied over the appropriate things over
   ASSERT_EQUAL(p_Mat->n, n);

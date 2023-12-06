@@ -34,15 +34,13 @@ struct lac_BlockCRSMatrix{
  * @param n_block the size of a block (amount of data to store per block)
  * @param n the number of rows in the matrix
  * @param m the number of columns in the matrix
- * @param n_nzero the number of non-zero blocks in the matrix
  * @param col_index an array of all of the columns in a row which are non-zero
  * each row comes after the previous
  * @param n_col a prefix sum of the number of columns in each row, good for
  * finding indices into col index
  */
 void lac_BlockCRSInit(lac_BlockCRSMatrix **pp_Mat, const int n_block, const int n,
-                      const int m, const int n_nzero, const int *col_index, 
-                      const int *n_col);
+                      const int m, const int *col_index, const int *n_col);
 
 /**
  * @brief frees the Block CRS matrix
