@@ -72,6 +72,8 @@ TEST(test_base){
   ASSERT_EQUAL(ierr, lac_INDEX_ZERO_ENTRY);
   ierr = lac_BlockCRSGetData(p_Mat, 2, 1, &data);
   ASSERT_EQUAL(ierr, lac_INDEX_ZERO_ENTRY);
+  ierr = lac_BlockCRSGetData(p_Mat, 0, 1, &data);
+  ASSERT_EQUAL(ierr, lac_INDEX_ZERO_ENTRY);
 
   ierr = lac_BlockCRSGetData(p_Mat, 3, 1, &data);
   ASSERT_EQUAL(ierr, lac_OK);

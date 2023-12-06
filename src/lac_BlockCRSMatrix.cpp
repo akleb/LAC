@@ -89,8 +89,10 @@ int lac_BlockCRSGetData(lac_BlockCRSMatrix *p_Mat, const int row, const int col,
   int *upper_bound = p_Mat->col_index + p_Mat->n_col[row + 1];
   int *mid = lower_bound + (upper_bound - lower_bound) / 2;
   while (lower_bound < upper_bound){
-    if (col > *mid)
+    if (col > *mid){
+      if (lower_bound == mid) break;
       lower_bound = mid;
+    } // if
     else if (col < *mid)
       upper_bound = mid;
     else{
