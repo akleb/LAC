@@ -106,4 +106,56 @@ int lac_BlockCRSGetData(lac_BlockCRSMatrix *p_Mat, const int row, const int col,
 
 } // lac_BlockCRSGetData
 
+int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat){
+  const int n_nzero = p_Mat->n_nzero;
+  const int n_block = p_Mat->n_block;
+  const double *data = p_Mat->data;
+  const int *col_index = p_Mat->col_index;
+  const int *n_col = p_Mat->n_col;
+  const int m = p_Mat->m;
+  const int n = p_Mat->n;
+
+  // new data arrays
+  double *T_data = new double[n_nzero * n_block];
+  int *T_n_col = new int[m + 1];
+  std::memset(T_n_col, 0, sizeof(int) * (m + 1));
+  int *T_col_index = new int[n_nzero];
+
+  // First let's set the n_col for the new matrix
+  for (int ii = 0; ii < n_nzero; ++ii)
+    T_n_col[col_index[ii] + 1]++;
+  for (int ii = 0; ii < m; ++ii)
+    T_n_col[ii + 1] += T_n_col[ii];
+
+  // Now we initialize pointers to all the location in the new col_index data to
+  // set which column each piece is in
+  int *cur_index = new int[m];
+  for (int ii = 0; ii < m; ++ii)
+    cur_index[ii] = T_n_col[ii];
+
+  // Iterate over each old row to determine which columns in the new matrix have
+  // entries in the associated columns, copy data over too
+  for (int ii = 0; ii < n; ++ii){
+    for (int jj = n_col[ii]; jj < n_col[ii + 1]; ++jj){
+      const int row = col_index[jj];
+      T_col_index[cur_index[row]] = ii;
+      std::memcpy(T_data + n_block * cur_index[row], data + n_block * jj, sizeof(double) * n_block);
+      cur_index[row]++;
+    } // for
+  } // for
+    
+  delete[] col_index;
+  delete[] cur_index;
+  delete[] n_col;
+  delete[] data;
+
+  p_Mat->m = n;
+  p_Mat->n = m;
+  p_Mat->data = T_data;
+  p_Mat->n_col = T_n_col;
+  p_Mat->col_index = T_col_index;
+
+  return lac_OK;
+
+} // lac_BlockCRSTranspose
 
