@@ -12,6 +12,8 @@
 #ifndef _LAC_MATRIX_MATH_HPP_
 #define _LAC_MATRIX_MATH_HPP_
 
+#include "lac_BlockCRSMatrix.hpp"
+
 /**
  * @brief Computes the matrix vector product Ax -> b
  *
@@ -23,6 +25,7 @@
  */
 int lac_MatVecMultCol(const double *A, const double *x, const int n, 
                         const int m, double *b);
+
 /**
  * @brief Computes the matrix vector product Ax -> b
  *
@@ -34,6 +37,19 @@ int lac_MatVecMultCol(const double *A, const double *x, const int n,
  */
 int lac_MatVecMultRow(const double *A, const double *x, const int n, 
                         const int m, double *b);
+
+/**
+ * @brief Computes the matrix vector product Ax -> b
+ *
+ * @param A an A->n * block_n x A->m * block_m block CRS matrix
+ * @param block_n the number of rows in each A block 
+ * @param block_m the number of columns in each A block
+ * @param x a length m * block_m vector
+ * @param b a length n * block_n vector set to the product of Ax
+ */
+int lac_MatVecMultBlockCRS(const lac_BlockCRSMatrix *A, const int block_n, 
+                           const int block_m, const double *x, double *b);
+
 /**
  * @brief computes the dot product of a and b
  *
