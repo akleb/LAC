@@ -86,5 +86,12 @@ int lac_BlockCRSZeroData(lac_BlockCRSMatrix *p_Mat);
  */
 int lac_BlockCRSGetData(lac_BlockCRSMatrix *p_Mat, const int row, const int col, double ** data);
 
+/**
+ * @brief Transposes the data in the block CRS matrix
+ *
+ * @param p_Mat the matrix will be transposed in place
+ */
+int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat);
+
 #endif
 
