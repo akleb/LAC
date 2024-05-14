@@ -41,6 +41,35 @@ int lac_MatVecMultRow(const double *A, const double *x, const int n,
 
 } // lac_MatVecMultRow
 
+int lac_MatVecMultBlockCRS(const lac_BlockCRSMatrix *A, const int block_n,
+                           const int block_m, const double *x, double *b){
+  const int n_block = A->n_block;
+  const int n = A->n;
+  const int *n_col = A->n_col;
+  const int *col_index = A->col_index;
+  const double *data = A->data;
+
+  std::memset(b, 0, sizeof(double) * n * block_n);
+  // loop over the entries in b
+  for (int row = 0; row < n; ++row){
+    double *b_data = b + block_n * row;
+    // loop over the entries in associated row of A
+    for (int jj = n_col[row]; jj < n_col[row + 1]; ++jj){
+      const double *block_data = data + n_block * jj;
+      const double *x_data = x + block_m * col_index[jj];
+      // Add the product of these two entries to the associated entries in b
+      for (int block_row = 0; block_row < block_n; ++block_row){
+        for (int block_col = 0; block_col < block_m; ++block_col){
+          b_data[block_row] += block_data[block_m * block_row + block_col] * x_data[block_col];
+        } // for
+      } // for
+    } // for
+  } // for
+
+  return lac_OK;
+
+} // lac_MatVecMultBlockCRS
+
 int lac_DotProduct(const double *a, const double *b, const int n, double *dot){
   *dot = 0;
   for (int ii = 0; ii < n; ++ii)
