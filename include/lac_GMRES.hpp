@@ -59,7 +59,7 @@ int lac_GivensRotation(const int col, double *H_col, double *e, double *F);
  */
 int lac_GMRES(lac_MatrixFreeLinearSystem *linSys, const double *b, const int n, const int nRst, 
                const double tol, const int max_iter, const bool precondition, double *x,
-               const int size = 0, const int rank = 1, bool verbose = false, 
+               const int size = 1, const int rank = 0, bool verbose = false, 
                int *iters = nullptr);
 
 #endif
