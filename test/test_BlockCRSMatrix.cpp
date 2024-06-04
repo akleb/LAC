@@ -12,6 +12,7 @@
 #include "unit_test_framework.h"
 #include "lac_Error.hpp"
 #include "lac_BlockCRSMatrix.hpp"
+#include <cstring>
 
 TEST(test_base){
 
@@ -271,6 +272,8 @@ TEST(test_ILU0){
     } // for
   } // for
 
+  lac_BlockCRSFree(&p_Mat);
+  lac_BlockCRSFree(&p_LU);
   return;
 
 } // test_ILU0
