@@ -70,6 +70,20 @@ int lac_MatVecMultBlockCRS(const lac_BlockCRSMatrix *A, const int block_n,
 
 } // lac_MatVecMultBlockCRS
 
+
+int lac_MatRowMatRowMult(const double *A, const double *B, const int n, 
+                                          const int m, const int k, double *C){
+  std::memset(C, 0, sizeof(double) * n * m);
+  for (int row = 0; row < n; ++row){
+    for (int col = 0; col < m; ++col){
+      for (int dot = 0; dot < k; ++dot)
+        C[m * row + col] += A[k * row + dot] * B[m * dot + col];
+    } // for
+  } // for
+
+  return lac_OK;
+
+} // lac_MatRowMatRowMult
 int lac_DotProduct(const double *a, const double *b, const int n, double *dot){
   *dot = 0;
   for (int ii = 0; ii < n; ++ii)

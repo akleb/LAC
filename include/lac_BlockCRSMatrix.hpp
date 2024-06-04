@@ -93,5 +93,16 @@ int lac_BlockCRSGetData(lac_BlockCRSMatrix *p_Mat, const int row, const int col,
  */
 int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat);
 
+int lac_BlockCRSILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_BlockCRSMatrix *p_LU);
+
+/**
+ * @brief prints out the block CRS Matrix
+ *
+ * @param p_Mat the matrix to print
+ * @param block_n the number of rows in each block
+ * @param block_m the number of columns in each block
+ */
+int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m);
+
 #endif
 

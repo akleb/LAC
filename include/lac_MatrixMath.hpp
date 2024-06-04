@@ -51,6 +51,18 @@ int lac_MatVecMultBlockCRS(const lac_BlockCRSMatrix *A, const int block_n,
                            const int block_m, const double *x, double *b);
 
 /**
+ * @brief Computes the Product C = AB
+ *
+ * @param A matrix that is n by k
+ * @param B matrix that is k by m
+ * @param n number of rows in A and C
+ * @param m number of columns in B and C
+ * @param k number of colunns in A and rows in B
+ * @param C the matrix product
+ */
+int lac_MatRowMatRowMult(const double *A, const double *B, const int n, 
+                         const int m, const int k, double *C);
+/**
  * @brief computes the dot product of a and b
  *
  * @param a first vector

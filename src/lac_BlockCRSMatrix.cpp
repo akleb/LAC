@@ -10,8 +10,10 @@
  */
 
 #include "lac_BlockCRSMatrix.hpp"
+#include "lac_Direct.hpp"
 #include "lac_Default.hpp"
 #include "lac_Error.hpp"
+#include "lac_MatrixMath.hpp"
 
 #include <cstring>
 
@@ -158,4 +160,109 @@ int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat){
   return lac_OK;
 
 } // lac_BlockCRSTranspose
+
+int lac_BlockCRSILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_BlockCRSMatrix *p_LU){
+  const int n_block = p_A->n_block;
+  const int n = p_A->n;
+  const int *n_col = p_A->n_col;
+  const int *col_index = p_A->col_index;
+
+  std::memcpy(p_LU->data, p_A->data, sizeof(double) * p_A->n_block * p_A->n_nzero);
+  double *a_ik= nullptr;
+  double *a_ij = nullptr;
+  double *a_kj = nullptr;
+  double *a_kk_i = new double[block_n * block_n];
+  double *working = new double[block_n * block_n];
+
+  // For each block row
+  for (int ii = 1; ii < n; ++ii){
+    for (int kk_i = n_col[ii], kk = col_index[kk_i]; kk < ii; kk = col_index[++kk_i]){
+
+      // skip if (i, k) is zero
+      if (lac_BlockCRSGetData(p_LU, ii, kk, &a_ik) == lac_INDEX_ZERO_ENTRY)
+        return lac_INDEX_ZERO_ENTRY;
+
+      if (lac_BlockCRSGetData(p_LU, kk, kk, &a_ij) == lac_INDEX_ZERO_ENTRY)
+        return lac_INDEX_ZERO_ENTRY;
+       
+      lac_InvertMatrix(a_ij, block_n, a_kk_i);
+
+      // This computes the terms in the lower diagonal portion that gives the
+      // cancel
+      lac_MatRowMatRowMult(a_ik, a_kk_i, block_n, block_n, block_n, working);
+      std::memcpy(a_ik, working, n_block * sizeof(double));
+
+      // Then we apply this transformation to other entries in this row before
+      // doing more cancels
+      for (int jj_i = kk_i + 1; jj_i < n_col[ii + 1]; ++jj_i){
+        const int jj = col_index[jj_i];
+
+        if (lac_BlockCRSGetData(p_LU, ii, jj, &a_ij) == lac_INDEX_ZERO_ENTRY)
+          return lac_INDEX_ZERO_ENTRY;
+        if (lac_BlockCRSGetData(p_LU, kk, jj, &a_kj) == lac_INDEX_ZERO_ENTRY)
+          continue;
+
+        lac_MatRowMatRowMult(a_ik, a_kj, block_n, block_n, block_n, working);
+        for (int entry = 0; entry < block_n * block_n; ++entry)
+            a_ij[entry] -= working[entry];
+      } // for
+    } // for
+  } // for
+
+  delete[] a_kk_i;
+  delete[] working;
+
+  return lac_OK;
+
+} // lac_BlockCRSILU0
+  
+int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m){
+  const int n = p_Mat->n;
+  const int m = p_Mat->m;
+
+  double **data_pointers = new double*[m];
+
+  for (int row = 0; row < n; ++row){
+    // Get all of the data from all the rows
+    for (int col = 0; col < m; ++col){
+      int ierr = lac_BlockCRSGetData(p_Mat, row, col, data_pointers + col);
+      if (ierr == lac_INDEX_ZERO_ENTRY) data_pointers[col] = nullptr;
+    } // for
+
+    // Loop over the block rows
+    printf("  ");
+    for (int col = 0; col < m; ++ col){
+      printf("  ");
+      for (int block_col = 0; block_col < block_m; ++block_col)
+        printf("---------");
+    } // for
+    printf("  \n");
+    for (int block_row = 0; block_row < block_n; ++block_row){
+      printf("| ");
+      for (int col = 0; col < m; ++col){
+        printf("| ");
+        if (data_pointers[col]){
+          for (int block_col = 0; block_col < block_m; ++block_col)
+            printf("%8.1e ", data_pointers[col][block_col]);
+        } // if
+        else{
+          for (int block_col = 0; block_col < block_m; ++block_col)
+            printf("         ");
+        } // else
+      } // for
+      printf("|\n");
+    } // for
+  } // for
+  // Loop over the block rows
+  printf("  ");
+  for (int col = 0; col < m; ++ col){
+    printf("  ");
+    for (int block_col = 0; block_col < block_m; ++block_col)
+      printf("---------");
+  } // for
+  printf("  \n");
+
+  return lac_OK;
+
+} // lac_BlockCRSPrint
 

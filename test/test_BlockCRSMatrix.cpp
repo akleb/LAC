@@ -214,5 +214,66 @@ TEST(test_transpose){
 
 } // test_transpose
   
+TEST(test_ILU0){
+  const int n = 4;
+  // MATRIX:
+  // |  2 -1  0  0 | 
+  // | -1  2 -1  0 |
+  // |  0 -1  2 -1 |
+  // |  0  0 -1  2 |
+  
+  int n_nzero = 10;
+  int col_index[10] = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
+  int n_col[5] = {0, 2, 5, 8, 10};
+
+  lac_BlockCRSMatrix *p_Mat;
+  lac_BlockCRSInit(&p_Mat, 4, 4, 4, col_index, n_col);
+  double *data;
+  for (int row = 0; row < 4; ++row){
+    for (int col = 0; col < 4; ++col){
+      if (lac_BlockCRSGetData(p_Mat, row, col, &data) == lac_INDEX_ZERO_ENTRY)
+        continue;
+      std::memset(data, 0, sizeof(double)*4);
+      double val = (row == col) ? 2 : -1;
+      data[0] = val;
+      data[3] = val;
+    } // for
+  } // for
+
+  double correct[16] = {   2,    -1,     0,    0,
+                        -0.5,   1.5,    -1,    0,
+                           0, -2./3,  4./3, -1.0,
+                           0,     0, -3./4, 5./4};
+  lac_BlockCRSMatrix *p_LU;
+  lac_BlockCRSInit(&p_LU, 4, 4, 4, col_index, n_col);
+  lac_BlockCRSILU0(p_Mat, 2, p_LU);
+
+  ASSERT_EQUAL(p_LU->n_nzero, 10);
+  ASSERT_EQUAL(p_LU->n_block, 4);
+  ASSERT_EQUAL(p_LU->n, 4);
+  ASSERT_EQUAL(p_LU->m, 4);
+  for (int ii = 0; ii < 5; ++ii){
+    ASSERT_EQUAL(p_LU->n_col[ii], n_col[ii]);
+  } // for
+  for (int ii = 0; ii < 10; ++ii){
+    ASSERT_EQUAL(p_LU->col_index[ii], col_index[ii]);
+  } // for
+
+  // Check the data matches
+  for (int row = 0; row < 4; ++row){
+    for (int col_i = n_col[row]; col_i < n_col[row + 1]; ++col_i){
+      const int col = col_index[col_i];
+      ASSERT_TRUE(lac_BlockCRSGetData(p_LU, row, col, &data) == lac_OK);
+      ASSERT_ALMOST_EQUAL(data[0], correct[4 * row + col], 1e-12);
+      ASSERT_ALMOST_EQUAL(data[1], 0, 1e-12);
+      ASSERT_ALMOST_EQUAL(data[2], 0, 1e-12);
+      ASSERT_ALMOST_EQUAL(data[3], correct[4 * row + col], 1e-12);
+    } // for
+  } // for
+
+  return;
+
+} // test_ILU0
+
 TEST_MAIN()
 
