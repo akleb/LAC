@@ -31,6 +31,30 @@
 int lac_PLUFactorization(const double *A, const int n, double *P, double *LU);
 
 /**
+ * @brief Does a forawrd subsition to solve the problem Ly = Pb, where P is a
+ * permuation matrix and L is a lower triangular matrix
+ *
+ * @param L the lower triangular matrix, expects a full n by n dense matrix with
+ * 1's on the diagonal (does not ever look at diagonal entries)
+ * @param P the permutation matrix, condensed into an array where P[0] indicates
+ * which row in A is permuted to position A[0, :], no permutations would be [0,
+ * 1, ..., n - 1]
+ * @param n the size of the system
+ * @param b the RHS that is unpermutated
+ * @param y stores the solution to Ly = Pb
+ */
+int lac_PLForwardSub(const double *L, const int *P, const int n, const double *b, double *y);
+
+/**
+ * @brief Does a backward subsitution to solve the problem Ux = b
+ *
+ * @param U the upper triangular matrix, stored fully dense (n by n)
+ * @param n the size of the system
+ * @param x starts as the RHS and the solve is done in place
+ */
+int lac_UBackwardSub(const double *U, const int n, double *x);
+
+/**
  * @brief given a PLU factorization and RHS, b, this solves for x (PLU x = b)
  *
  * @param LU the LU factorization in the format described for 

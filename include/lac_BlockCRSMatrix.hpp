@@ -93,5 +93,34 @@ int lac_BlockCRSGetData(lac_BlockCRSMatrix *p_Mat, const int row, const int col,
  */
 int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat);
 
+/**
+ * @brief performs the ILU0 factorization on a BlockCRS Matrix
+ *
+ * @param p_A the block CRS matrix
+ * @param block_n the size of each block in block_n by block_n
+ * @param p_LU the resulting ILU0 factorization, needs to be iniitialized to the
+ * same sparsity pattern as p_A
+ */
+int lac_BlockCRS_ILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_BlockCRSMatrix *p_LU);
+
+/**
+ * @brief does a foward back sub to compute the solution to LUx = b
+ * 
+ * @param p_LU the LU factorization in BlockCRS format
+ * @param block_n the size of the blocks in the blockCRS matrix
+ * @param b the RHS, size block_n * p_LU->n
+ * @param x the solution, size block_n * p_LU->n
+ */
+int lac_BlockCRS_LUForwardBackwardSub(lac_BlockCRSMatrix *p_LU, const int block_n, const double *b, double *x);
+
+/**
+ * @brief prints out the block CRS Matrix
+ *
+ * @param p_Mat the matrix to print
+ * @param block_n the number of rows in each block
+ * @param block_m the number of columns in each block
+ */
+int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m);
+
 #endif
 
