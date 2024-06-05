@@ -12,6 +12,8 @@
 #include "unit_test_framework.h"
 #include "lac_Error.hpp"
 #include "lac_BlockCRSMatrix.hpp"
+#include "lac_MatrixMath.hpp"
+#include "lac_Norms.hpp"
 #include <cstring>
 
 TEST(test_base){
@@ -247,7 +249,7 @@ TEST(test_ILU0){
                            0,     0, -3./4, 5./4};
   lac_BlockCRSMatrix *p_LU;
   lac_BlockCRSInit(&p_LU, 4, 4, 4, col_index, n_col);
-  lac_BlockCRSILU0(p_Mat, 2, p_LU);
+  lac_BlockCRS_ILU0(p_Mat, 2, p_LU);
 
   ASSERT_EQUAL(p_LU->n_nzero, 10);
   ASSERT_EQUAL(p_LU->n_block, 4);
@@ -271,12 +273,101 @@ TEST(test_ILU0){
       ASSERT_ALMOST_EQUAL(data[3], correct[4 * row + col], 1e-12);
     } // for
   } // for
+  
+  //lac_BlockCRSPrint(p_LU, 2, 2);
+  double A_col[64] = { 2,  0, -1,  0,  0,  0,  0,  0, 
+                       0,  2,  0, -1,  0,  0,  0,  0, 
+                      -1,  0,  2,  0, -1,  0,  0,  0,
+                       0, -1,  0,  2,  0, -1,  0,  0,
+                       0,  0, -1,  0,  2,  0, -1,  0,
+                       0,  0,  0, -1,  0,  2,  0, -1,
+                       0,  0,  0,  0, -1,  0,  2,  0,
+                       0,  0,  0,  0,  0, -1,  0,  2};
+  double x[8];
+  for (int col = 0; col < 4; ++col){
+    ASSERT_EQUAL(lac_BlockCRS_LUForwardBackwardSub(p_LU, 2, A_col + 8 * col, x), lac_OK);
+    for (int row = 0; row < 4; ++row){
+      if (row == col) {
+        ASSERT_ALMOST_EQUAL(x[row], 1, 1e-12);
+      } // if
+      else{
+        ASSERT_ALMOST_EQUAL(x[row], 0, 1e-12);
+      } // else
+    } // for
+  } // for
 
   lac_BlockCRSFree(&p_Mat);
   lac_BlockCRSFree(&p_LU);
   return;
 
 } // test_ILU0
+
+TEST(test_ILU0_rand){
+  const int n = 4;
+  // MATRIX:
+  // |  2 -1  0  0 | 
+  // | -1  2 -1  0 |
+  // |  0 -1  2 -1 |
+  // |  0  0 -1  2 |
+  
+  int n_nzero = 10;
+  int col_index[10] = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
+  int n_col[5] = {0, 2, 5, 8, 10};
+
+  lac_BlockCRSMatrix *p_Mat;
+  lac_BlockCRSInit(&p_Mat, 4, 4, 4, col_index, n_col);
+  double *data;
+  srand(0);
+  for (int row = 0; row < 4; ++row){
+    for (int col = 0; col < 4; ++col){
+      if (lac_BlockCRSGetData(p_Mat, row, col, &data) == lac_INDEX_ZERO_ENTRY)
+        continue;
+      double val = (row == col) ? 2 : -1;
+      data[0] = val;
+      data[3] = val;
+      data[1] = ((double) rand() / RAND_MAX) * 0.5;
+      data[2] = -data[1];
+
+    } // for
+  } // for
+
+  lac_BlockCRSMatrix *p_LU;
+  lac_BlockCRSInit(&p_LU, 4, 4, 4, col_index, n_col);
+  lac_BlockCRS_ILU0(p_Mat, 2, p_LU);
+
+  ASSERT_EQUAL(p_LU->n_nzero, 10);
+  ASSERT_EQUAL(p_LU->n_block, 4);
+  ASSERT_EQUAL(p_LU->n, 4);
+  ASSERT_EQUAL(p_LU->m, 4);
+  for (int ii = 0; ii < 5; ++ii){
+    ASSERT_EQUAL(p_LU->n_col[ii], n_col[ii]);
+  } // for
+  for (int ii = 0; ii < 10; ++ii){
+    ASSERT_EQUAL(p_LU->col_index[ii], col_index[ii]);
+  } // for
+
+  double x[8];
+  for (int ii = 0; ii < 8; ++ii)
+    x[ii] = (double) rand() / RAND_MAX - 0.5;
+
+  double Ax[8];
+  double AiAx[8];
+  lac_MatVecMultBlockCRS(p_Mat, 2, 2, x, Ax);
+  lac_BlockCRS_LUForwardBackwardSub(p_LU, 2, Ax, AiAx);
+  double R, R_tilde;
+  lac_L2Norm(Ax, 8, &R);
+  lac_L2Norm(AiAx, 8, &R_tilde);
+
+  //lac_BlockCRSPrint(p_Mat, 2, 2);
+  //lac_BlockCRSPrint(p_LU, 2, 2);
+  printf("R       = %.3e\nR_tilde = %.3e\n", R, R_tilde);
+  ASSERT_TRUE(R_tilde < R);
+
+  lac_BlockCRSFree(&p_Mat);
+  lac_BlockCRSFree(&p_LU);
+  return;
+
+} // test_ILU0_rand
 
 TEST_MAIN()
 

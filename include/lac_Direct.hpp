@@ -30,6 +30,10 @@
  */
 int lac_PLUFactorization(const double *A, const int n, double *P, double *LU);
 
+int lac_PLForwardSub(const double *L, const int *P, const int n, const double *b, double *y);
+
+int lac_UBackwardSub(const double *U, const int n, double *x);
+
 /**
  * @brief given a PLU factorization and RHS, b, this solves for x (PLU x = b)
  *

@@ -76,27 +76,41 @@ int lac_PLUFactorization(const double *A, const int n, int *P, double *LU){
 
 } // lac_PLUFactorization
 
+int lac_PLForwardSub(const double *L, const int *P, const int n, const double *b, double *y){
+  for (int row = 0; row < n; ++row) {
+    y[row] = b[P[row]];
+    for (int col = 0; col < row; ++col)
+      y[row] -= y[col] * L[row*n + col];
+  } // for
+
+  return lac_OK;
+
+} // lac_PLForwardSub
+
+int lac_UBackwardSub(const double *U, const int n, double *x){
+  for (int row = n - 1; row >= 0; --row) {
+    for (int col = row + 1; col < n; ++col) {
+      x[row] -= x[col] * U[row*n + col];
+    } // for columns
+    x[row] /= U[row*n + row];
+
+    if (row == 0)
+      break;
+  } // for rows
+
+  return lac_OK;
+
+} // lac_UBackwardSub
+
 int lac_PLUForwardBackwardSub(const double *LU, const int *P, const int n, 
                               const double *b, double *x){
 
   // Solving LUx=b
   // Ly = perm*b
-  for (int row = 0; row < n; ++row) {
-    x[row] = b[P[row]];
-    for (int col = 0; col < row; ++col)
-      x[row] -= x[col] * LU[row*n + col];
-  } // for
+  lac_PLForwardSub(LU, P, n, b, x);
 
   // Ux = y
-  for (int row = n - 1; row >= 0; --row) {
-    for (int col = row + 1; col < n; ++col) {
-      x[row] -= x[col] * LU[row*n + col];
-    } // for columns
-    x[row] /= LU[row*n + row];
-
-    if (row == 0)
-      break;
-  } // for rows
+  lac_UBackwardSub(LU, n, x);
 
   return lac_OK;
 

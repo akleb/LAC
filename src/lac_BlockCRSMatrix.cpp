@@ -15,6 +15,7 @@
 #include "lac_Error.hpp"
 #include "lac_MatrixMath.hpp"
 
+#include <algorithm>
 #include <cstring>
 
 void lac_BlockCRSInit(lac_BlockCRSMatrix **pp_Mat, const int n_block, const int n,
@@ -161,7 +162,7 @@ int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat){
 
 } // lac_BlockCRSTranspose
 
-int lac_BlockCRSILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_BlockCRSMatrix *p_LU){
+int lac_BlockCRS_ILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_BlockCRSMatrix *p_LU){
   const int n_block = p_A->n_block;
   const int n = p_A->n;
   const int *n_col = p_A->n_col;
@@ -214,7 +215,57 @@ int lac_BlockCRSILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_Block
 
   return lac_OK;
 
-} // lac_BlockCRSILU0
+} // lac_BlockCRS_ILU0
+  
+int lac_BlockCRS_LUForwardBackwardSub(lac_BlockCRSMatrix *p_LU, const int block_n, const double *b, double *x){
+  const int n = p_LU->n;
+  const int *n_col = p_LU->n_col;
+  const int *col_index = p_LU->col_index;
+  double *working = new double[block_n];
+  double *data;
+  int *P = new int[block_n];
+  for (int ii = 0; ii < block_n; ++ii)
+    P[ii] = ii;
+
+  //Solving LUx = b
+  // Ly = b
+  std::memcpy(x, b, sizeof(double) * n * block_n);
+  for (int row = 0; row < n; ++row){
+    for (int col_i = n_col[row], col = col_index[col_i]; col < row; col = col_index[++col_i]){
+      if (lac_BlockCRSGetData(p_LU, row, col, &data) == lac_INDEX_ZERO_ENTRY)
+        return lac_INDEX_ZERO_ENTRY;
+      // matrix multiply 
+      lac_MatVecMultRow(data, x + block_n * col, block_n, block_n, working);
+      for (int ii = 0; ii < block_n; ++ii)
+        x[block_n * row + ii] -= working[ii]; 
+    } // for
+    if (lac_BlockCRSGetData(p_LU, row, row, &data) == lac_INDEX_ZERO_ENTRY)
+      return lac_INDEX_ZERO_ENTRY;
+    lac_PLForwardSub(data, P, block_n, x + block_n * row, working);
+    std::memcpy(x + block_n * row, working, block_n);
+  } // for
+
+  //Ux = y
+  for (int row = n - 1; row >= 0; --row){
+    const int start = std::upper_bound(col_index + n_col[row], col_index + n_col[row + 1], row) - col_index; 
+    for (int col_i = start; col_i < n_col[row + 1]; ++col_i){
+      const int col = col_index[col_i];
+      if (lac_BlockCRSGetData(p_LU, row, col, &data) == lac_INDEX_ZERO_ENTRY)
+        return lac_INDEX_ZERO_ENTRY;
+      lac_MatVecMultRow(data, x + block_n * col, block_n, block_n, working);
+      for (int ii = 0; ii < block_n; ++ii)
+        x[block_n * row + ii] -= working[ii];
+    } // for
+    if (lac_BlockCRSGetData(p_LU, row, row, &data) == lac_INDEX_ZERO_ENTRY)
+      return lac_INDEX_ZERO_ENTRY;
+    lac_UBackwardSub(data, block_n, x + block_n * row);
+  } // for
+
+  delete[] working;
+  delete[] P;
+  return lac_OK;
+
+} // lac_BlockCRSLUForwardBackwardSub
   
 int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m){
   const int n = p_Mat->n;
@@ -230,7 +281,6 @@ int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int bl
     } // for
 
     // Loop over the block rows
-    printf("  ");
     for (int col = 0; col < m; ++ col){
       printf("  ");
       for (int block_col = 0; block_col < block_m; ++block_col)
@@ -238,12 +288,11 @@ int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int bl
     } // for
     printf("  \n");
     for (int block_row = 0; block_row < block_n; ++block_row){
-      printf("| ");
       for (int col = 0; col < m; ++col){
         printf("| ");
         if (data_pointers[col]){
           for (int block_col = 0; block_col < block_m; ++block_col)
-            printf("%8.1e ", data_pointers[col][block_col]);
+            printf("%8.1e ", data_pointers[col][block_m * block_row + block_col]);
         } // if
         else{
           for (int block_col = 0; block_col < block_m; ++block_col)
@@ -254,7 +303,6 @@ int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int bl
     } // for
   } // for
   // Loop over the block rows
-  printf("  ");
   for (int col = 0; col < m; ++ col){
     printf("  ");
     for (int block_col = 0; block_col < block_m; ++block_col)

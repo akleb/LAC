@@ -93,7 +93,9 @@ int lac_BlockCRSGetData(lac_BlockCRSMatrix *p_Mat, const int row, const int col,
  */
 int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat);
 
-int lac_BlockCRSILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_BlockCRSMatrix *p_LU);
+int lac_BlockCRS_ILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_BlockCRSMatrix *p_LU);
+
+int lac_BlockCRS_LUForwardBackwardSub(lac_BlockCRSMatrix *p_LU, const int block_n, const double *b, double *x);
 
 /**
  * @brief prints out the block CRS Matrix
