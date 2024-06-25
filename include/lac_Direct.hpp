@@ -28,7 +28,7 @@
  * the diagonals, these are omitted from matrix LU and instead it holds the
  * diagonal of the upper matrix
  */
-int lac_PLUFactorization(const double *A, const int n, double *P, double *LU);
+int lac_PLUFactorization(const double *A, const int n, int *P, double *LU);
 
 /**
  * @brief Does a forawrd subsition to solve the problem Ly = Pb, where P is a
