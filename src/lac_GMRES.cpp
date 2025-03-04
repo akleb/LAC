@@ -66,6 +66,14 @@ int lac_GMRES(lac_MatrixFreeLinearSystem *obj, const double *b, const int n, con
   if (verbose && rank != 0) verbose = false;
   if (iters) *iters = 0;
 
+  const int max_store = n * (nRst + 1);
+  if (n != 0 && max_store / n != nRst + 1){
+    LAC_ERR("Tried to solve a system that resulted in integer overflow of n * (nRst + 1).\n");
+    LAC_CONT("n = %d, nRst = %d.\n", n, nRst);
+    LAC_CONT("Try reducing nRst, if that is not possible, we need to update the solver to accept larger datatypes.\n");
+    return lac_INTEGER_OVERFLOW;
+  } // if
+    
   // Used to update the value of x
   double *r = new double[n];
   // K and H are both column major

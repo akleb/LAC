@@ -18,6 +18,7 @@
 #define lac_MAX_ITER            2
 #define lac_INDEX_OUT_OF_BOUNDS 3
 #define lac_INDEX_ZERO_ENTRY    4
+#define lac_INTEGER_OVERFLOW    5
 
 #endif
 
