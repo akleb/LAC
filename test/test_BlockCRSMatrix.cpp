@@ -125,11 +125,14 @@ TEST(test_base){
 
 } // test_Init
 
-TEST(test_transpose){
+TEST(test_transpose_blocks){
   const int n = 4;
   const int m = 5;
   const int n_nzero = 6;
   const int n_block = 2;
+  const int block_n = 2;
+  const int block_m = 1;
+
   // MATRIX:
   // | X 0 0 0 X | 
   // | 0 0 0 0 0 |
@@ -158,12 +161,13 @@ TEST(test_transpose){
       const int col = col_index[jj];
       data[0] = row;
       data[1] = col;
+
       int ierr = lac_BlockCRSSetData(p_Mat, row, col, data);
       if (ierr != lac_OK) {ASSERT_TRUE(false);}
     } // for
   } // for
 
-  lac_BlockCRSTranspose(p_Mat);
+  lac_BlockCRSTranspose(p_Mat, block_n, block_m);
   // MATRIX TRANSPOSED:
   // | X 0 0 0 | 
   // | 0 0 0 X |
@@ -216,6 +220,104 @@ TEST(test_transpose){
   return;
 
 } // test_transpose
+
+TEST(test_transpose_data){
+  const int n = 4;
+  const int m = 5;
+  const int n_nzero = 6;
+  const int n_block = 12;
+  const int block_n = 2;
+  const int block_m = 3;
+
+  // MATRIX:
+  // | X 0 0 0 X | 
+  // | 0 0 0 0 0 |
+  // | 0 0 X X X |
+  // | 0 X 0 0 0 |
+  int n_col[5];
+  n_col[0] = 0;
+  n_col[1] = 2;
+  n_col[2] = 2;
+  n_col[3] = 5;
+  n_col[4] = 6;
+
+  int col_index[6];
+  col_index[0] = 0;
+  col_index[1] = 4;
+  col_index[2] = 2;
+  col_index[3] = 3;
+  col_index[4] = 4;
+  col_index[5] = 1;
+
+  lac_BlockCRSMatrix *p_Mat;
+  lac_BlockCRSInit(&p_Mat, n_block, n, m, col_index, n_col);
+  double data[6] = {0, 1, 2, 3, 4, 5};
+  for (int row = 0; row < n; ++row){
+    for (int jj = n_col[row]; jj < n_col[row+1]; ++jj){
+      const int col = col_index[jj];
+      int ierr = lac_BlockCRSSetData(p_Mat, row, col, data);
+      if (ierr != lac_OK) {ASSERT_TRUE(false);}
+    } // for
+  } // for
+
+  lac_BlockCRSTranspose(p_Mat, block_n, block_m);
+  // MATRIX TRANSPOSED:
+  // | X 0 0 0 | 
+  // | 0 0 0 X |
+  // | 0 0 X 0 |
+  // | 0 0 X 0 |
+  // | X 0 X 0 |
+  ASSERT_EQUAL(p_Mat->n, m);
+  ASSERT_EQUAL(p_Mat->m, n);
+  ASSERT_EQUAL(p_Mat->n_nzero, 6);
+  ASSERT_EQUAL(p_Mat->n_block, 12);
+
+  int correct_n_col[6];
+  correct_n_col[0] = 0;
+  correct_n_col[1] = 1;
+  correct_n_col[2] = 2;
+  correct_n_col[3] = 3;
+  correct_n_col[4] = 4;
+  correct_n_col[5] = 6;
+  for (int ii = 0; ii < 6; ++ii){
+    ASSERT_EQUAL(p_Mat->n_col[ii], correct_n_col[ii]);
+  } // for
+    
+  int correct_col_index[6];
+  correct_col_index[0] = 0;
+  correct_col_index[1] = 3;
+  correct_col_index[2] = 2;
+  correct_col_index[3] = 2;
+  correct_col_index[4] = 0;
+  correct_col_index[5] = 2;
+  for (int ii = 0; ii < 6; ++ii){
+    ASSERT_EQUAL(p_Mat->col_index[ii], correct_col_index[ii]);
+  } // for
+
+  // check that the data was tranposed
+  double data_T[6] = {0, 3, 1, 4, 2, 5};
+  for (int row = 0; row < n; ++row){
+    for (int jj = p_Mat->n_col[row]; jj < p_Mat->n_col[row+1]; ++jj){
+      const int col = p_Mat->col_index[jj];
+
+      double *t_data = nullptr;
+      int ierr = lac_BlockCRSGetData(p_Mat, row, col, &t_data);
+      if (ierr != lac_OK) {ASSERT_TRUE(false);}
+
+      ASSERT_EQUAL(t_data[0], data_T[0]);
+      ASSERT_EQUAL(t_data[1], data_T[1]);
+      ASSERT_EQUAL(t_data[2], data_T[2]);
+      ASSERT_EQUAL(t_data[3], data_T[3]);
+      ASSERT_EQUAL(t_data[4], data_T[4]);
+      ASSERT_EQUAL(t_data[5], data_T[5]);
+    } // for
+  } // for
+
+  lac_BlockCRSFree(&p_Mat);
+
+  return;
+
+} // test_transpose_data
   
 TEST(test_ILU0){
   const int n = 4;

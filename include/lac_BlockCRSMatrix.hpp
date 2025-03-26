@@ -90,8 +90,12 @@ int lac_BlockCRSGetData(lac_BlockCRSMatrix *p_Mat, const int row, const int col,
  * @brief Transposes the data in the block CRS matrix
  *
  * @param p_Mat the matrix will be transposed in place
+ * @param block_n the number of rows in each block of the matrix before the
+ * transpose
+ * @param block_m the number of cols in each block of the matrix before the
+ * transpose
  */
-int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat);
+int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m);
 
 /**
  * @brief performs the ILU0 factorization on a BlockCRS Matrix

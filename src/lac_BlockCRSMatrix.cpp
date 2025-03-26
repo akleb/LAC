@@ -109,7 +109,7 @@ int lac_BlockCRSGetData(lac_BlockCRSMatrix *p_Mat, const int row, const int col,
 
 } // lac_BlockCRSGetData
 
-int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat){
+int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m){
   const int n_nzero = p_Mat->n_nzero;
   const int n_block = p_Mat->n_block;
   const double *data = p_Mat->data;
@@ -142,10 +142,17 @@ int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat){
     for (int jj = n_col[ii]; jj < n_col[ii + 1]; ++jj){
       const int row = col_index[jj];
       T_col_index[cur_index[row]] = ii;
-      std::memcpy(T_data + n_block * cur_index[row], data + n_block * jj, sizeof(double) * n_block);
+      double *T_data_local = T_data + n_block * cur_index[row];
+      const double *data_local = data + n_block * jj;
+      for (int block_row = 0; block_row < block_n; ++block_row){
+        for (int block_col = 0; block_col < block_m; ++block_col){
+          T_data_local[block_n * block_col + block_row] = data_local[block_m * block_row + block_col];
+        } // for
+      } // for
       cur_index[row]++;
     } // for
   } // for
+
     
   delete[] col_index;
   delete[] cur_index;
