@@ -19,6 +19,8 @@
 #define lac_INDEX_OUT_OF_BOUNDS 3
 #define lac_INDEX_ZERO_ENTRY    4
 #define lac_INTEGER_OVERFLOW    5
+#define lac_FILE_OPEN_ERROR     6
+#define lac_FILE_READ_ERROR     7
 
 #endif
 

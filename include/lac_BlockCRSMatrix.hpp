@@ -15,6 +15,8 @@
 #include "lac_Default.hpp"
 #include "lac_Error.hpp"
 
+#include <string>
+
 struct lac_BlockCRSMatrix{
   
   double *data;
@@ -125,6 +127,22 @@ int lac_BlockCRS_LUForwardBackwardSub(lac_BlockCRSMatrix *p_LU, const int block_
  * @param block_m the number of columns in each block
  */
 int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m);
+
+/**
+ * @brief prints out the block CRS Matrix to file
+ *
+ * @param p_Mat the matrix to print
+ * @param filename the name of the file to write the matrix to
+ */
+int lac_BlockCRSFileWrite(lac_BlockCRSMatrix *p_Mat, const std::string filename);
+
+/**
+ * @brief Initializes a block CRS matrix from file
+ *
+ * @param pp_Mat the matrix that is going to be intialized
+ * @param filename the name of the file containing the matrix
+ */
+int lac_BlockCRSInitFromFile(lac_BlockCRSMatrix **pp_Mat, const std::string filename);
 
 #endif
 

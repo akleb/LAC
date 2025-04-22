@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <cstdio>
 
 void lac_BlockCRSInit(lac_BlockCRSMatrix **pp_Mat, const int n_block, const int n,
                       const int m, const int *col_index, const int *n_col){
@@ -281,7 +282,7 @@ int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int bl
   double **data_pointers = new double*[m];
 
   for (int row = 0; row < n; ++row){
-    // Get all of the data from all the rows
+    // Get all of the data from all the columns
     for (int col = 0; col < m; ++col){
       int ierr = lac_BlockCRSGetData(p_Mat, row, col, data_pointers + col);
       if (ierr == lac_INDEX_ZERO_ENTRY) data_pointers[col] = nullptr;
@@ -317,7 +318,84 @@ int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int bl
   } // for
   printf("  \n");
 
+  delete[] data_pointers;
+
   return lac_OK;
 
 } // lac_BlockCRSPrint
 
+int lac_BlockCRSFileWrite(lac_BlockCRSMatrix *p_Mat, const std::string filename){
+
+  FILE *f_out = fopen(filename.c_str(), "w");
+  if (f_out == nullptr)
+    return lac_FILE_OPEN_ERROR;
+
+  fprintf(f_out, "%d %d %d %d\n", p_Mat->n, p_Mat->m, p_Mat->n_block, p_Mat->n_nzero);
+
+  // first print out the number of entries in each row
+  for (int ii = 0; ii < p_Mat->n + 1; ++ii)
+    fprintf(f_out, "%d ", p_Mat->n_col[ii]);
+  fprintf(f_out, "\n");
+
+  // Next print out the column index followed by data for each entry
+  for (int ii = 0; ii < p_Mat->n_nzero; ++ii){
+      fprintf(f_out, "%d ", p_Mat->col_index[ii]);
+      for (int state = 0; state < p_Mat->n_block; ++state)
+        fprintf(f_out, "%25.16e ", p_Mat->data[p_Mat->n_block * ii + state]);
+      fprintf(f_out, "\n");
+  } // for
+
+  fclose(f_out);
+
+  return lac_OK;
+
+} // lac_BlockCRSFPrint
+ 
+int lac_BlockCRSInitFromFile(lac_BlockCRSMatrix **pp_Mat, const std::string filename){
+  *pp_Mat = new lac_BlockCRSMatrix;
+
+  FILE *f_in = fopen(filename.c_str(), "r");
+  if (f_in == nullptr)
+    return lac_FILE_OPEN_ERROR;
+
+  int read = fscanf(f_in, "%d %d %d %d\n", &(*pp_Mat)->n, &(*pp_Mat)->m, &(*pp_Mat)->n_block, &(*pp_Mat)->n_nzero);
+  if (read != 4){
+    LAC_ERR("Failed to read the hearder information in %s.\n", filename.c_str());
+    return lac_FILE_READ_ERROR;
+  } // if 
+
+  (*pp_Mat)->n_col = new int[(*pp_Mat)->n + 1];
+  (*pp_Mat)->col_index = new int[(*pp_Mat)->n_nzero];
+  (*pp_Mat)->data = new double[(*pp_Mat)->n_block * (*pp_Mat)->n_nzero];
+
+  // first read in the number of entries in each row
+  for (int ii = 0; ii < (*pp_Mat)->n + 1; ++ii){
+    read = fscanf(f_in, "%d ", (*pp_Mat)->n_col + ii);
+    if (read != 1){
+      LAC_ERR("Failed to read n_col for index %d in file %s.\n", ii, filename.c_str());
+      return lac_FILE_READ_ERROR;
+    } // if
+  } // for
+
+  // Next read in the column index followed by data for each entry
+  for (int ii = 0; ii < (*pp_Mat)->n_nzero; ++ii){
+      read = fscanf(f_in, "%d", &(*pp_Mat)->col_index[ii]);
+      if (read != 1){
+        LAC_ERR("Failed to read col index for entry %d in file %s.\n", ii, filename.c_str());
+        return lac_FILE_READ_ERROR;
+      } // if
+      for (int state = 0; state < (*pp_Mat)->n_block; ++state){
+        read = fscanf(f_in, "%lf", (*pp_Mat)->data + (*pp_Mat)->n_block * ii + state);
+        if (read != 1){
+          LAC_ERR("Failed to read block data at state %d for entry %d in file %s.\n", state, ii, filename.c_str());
+          return lac_FILE_READ_ERROR;
+        } // if
+      } // for
+  } // for
+
+  fclose(f_in);
+
+  return lac_OK;
+
+} // lac_BlockCRSFPrint
+ 

@@ -52,7 +52,6 @@ IF (BUILD_TESTS)
     include(add_unit_test)
     include(add_unit_test_mpi)
     # Copy all the input files to the bin for tests
-    file(COPY ${INPUT_FILE_DIR} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
     add_subdirectory(test)
 ENDIF (BUILD_TESTS)
 

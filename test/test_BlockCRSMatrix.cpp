@@ -125,6 +125,93 @@ TEST(test_base){
 
 } // test_Init
 
+TEST(test_InitFromFile){
+
+  lac_BlockCRSMatrix *p_Mat;
+  int ierr = lac_BlockCRSInitFromFile(&p_Mat, "test_matrix.dat");
+  ASSERT_EQUAL(ierr, lac_OK);
+
+  // MATRIX:
+  // | X 0 0 0 X 0 0 | 
+  // | 0 0 0 0 0 0 X |
+  // | 0 0 X X X 0 0 |
+  // | 0 X 0 0 0 X 0 |
+  // | X 0 X 0 X 0 X |
+
+  ASSERT_EQUAL(p_Mat->n, 5);
+  ASSERT_EQUAL(p_Mat->m, 7);
+  ASSERT_EQUAL(p_Mat->n_nzero, 12);
+  ASSERT_EQUAL(p_Mat->n_block, 2);
+
+  int correct_ncol[6] = {0, 2, 3, 6, 8, 12};
+  for (int ii = 0; ii < p_Mat->n + 1; ++ii){
+    ASSERT_EQUAL(p_Mat->n_col[ii], correct_ncol[ii]);
+  } // for
+
+  int correct_col_index[12] = {0, 4, 6, 2, 3, 4, 1, 5, 0, 2, 4, 6};
+  for (int ii = 0; ii < p_Mat->n_nzero; ++ii){
+    ASSERT_EQUAL(p_Mat->col_index[ii], correct_col_index[ii]);
+  } // for
+
+  for (int row = 0; row < p_Mat->n; ++row){
+    for (int ii = p_Mat->n_col[row]; ii < p_Mat->n_col[row + 1]; ++ii){
+      double *data;
+      ierr = lac_BlockCRSGetData(p_Mat, row, p_Mat->col_index[ii], &data);
+      ASSERT_EQUAL(ierr, lac_OK);
+      ASSERT_EQUAL(data[0], row);
+      ASSERT_EQUAL(data[1], p_Mat->col_index[ii]);
+    } // for
+  } // for
+    //
+  lac_BlockCRSFree(&p_Mat);
+
+  return;
+
+} // test_InitFromFile
+
+TEST(test_InitWriteToFile){
+
+  lac_BlockCRSMatrix *p_Mat;
+  int ierr = lac_BlockCRSInitFromFile(&p_Mat, "test_matrix.dat");
+  ASSERT_EQUAL(ierr, lac_OK);
+  ierr = lac_BlockCRSFileWrite(p_Mat, "_test_BlockCRSWrite.dat");
+  ASSERT_EQUAL(ierr, lac_OK);
+  lac_BlockCRSMatrix *p_Write;
+  ierr = lac_BlockCRSInitFromFile(&p_Write, "_test_BlockCRSWrite.dat");
+  ASSERT_EQUAL(ierr, lac_OK);
+
+
+  // MATRIX:
+  // | X 0 0 0 X 0 0 | 
+  // | 0 0 0 0 0 0 X |
+  // | 0 0 X X X 0 0 |
+  // | 0 X 0 0 0 X 0 |
+  // | X 0 X 0 X 0 X |
+
+  ASSERT_EQUAL(p_Write->n, p_Mat->n);
+  ASSERT_EQUAL(p_Write->m, p_Mat->m);
+  ASSERT_EQUAL(p_Write->n_nzero, p_Mat->n_nzero);
+  ASSERT_EQUAL(p_Write->n_block, p_Mat->n_block);
+
+  for (int ii = 0; ii < p_Write->n + 1; ++ii){
+    ASSERT_EQUAL(p_Write->n_col[ii], p_Mat->n_col[ii]);
+  } // for
+
+  for (int ii = 0; ii < p_Write->n_nzero; ++ii){
+    ASSERT_EQUAL(p_Write->col_index[ii], p_Mat->col_index[ii]);
+  } // for
+
+  for (int ii = 0; ii < p_Write->n_nzero * p_Write->n_block; ++ii){
+    ASSERT_EQUAL(p_Write->data[ii], p_Mat->data[ii]);
+  } // for
+
+  lac_BlockCRSFree(&p_Mat);
+  lac_BlockCRSFree(&p_Write);
+
+  return;
+
+} // test_InitFromFile
+
 TEST(test_transpose_blocks){
   const int n = 4;
   const int m = 5;
@@ -225,7 +312,7 @@ TEST(test_transpose_data){
   const int n = 4;
   const int m = 5;
   const int n_nzero = 6;
-  const int n_block = 12;
+  const int n_block = 6;
   const int block_n = 2;
   const int block_m = 3;
 
@@ -270,7 +357,7 @@ TEST(test_transpose_data){
   ASSERT_EQUAL(p_Mat->n, m);
   ASSERT_EQUAL(p_Mat->m, n);
   ASSERT_EQUAL(p_Mat->n_nzero, 6);
-  ASSERT_EQUAL(p_Mat->n_block, 12);
+  ASSERT_EQUAL(p_Mat->n_block, 6);
 
   int correct_n_col[6];
   correct_n_col[0] = 0;
