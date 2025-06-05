@@ -17,6 +17,17 @@
 
 #include <string>
 
+#define LAC_BLOCKCRSGETDATA(_crs, _row, _col, _data)                                  \
+  {                                                                                   \
+    int _ierr_ = lac_BlockCRSGetData((_crs), (_row), (_col), &(_data));               \
+    if (_ierr_ != lac_OK){                                                            \
+      printf("\n");                                                                   \
+      ERR("Failed lac_BlockCRSGetData at line %d of file %s\n", __LINE__, __FILE__);  \
+      CONT("ierr = %d, row = %d, col = %d\n", _ierr_, (int)(_row), (int)(_col));      \
+      exit(1);                                                                        \
+    }                                                                                 \
+  }
+
 struct lac_BlockCRSMatrix{
   
   double *data;
