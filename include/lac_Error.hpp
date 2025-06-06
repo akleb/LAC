@@ -21,6 +21,7 @@
 #define lac_INTEGER_OVERFLOW    5
 #define lac_FILE_OPEN_ERROR     6
 #define lac_FILE_READ_ERROR     7
+#define lac_VALUE_ERROR         8
 
 #endif
 

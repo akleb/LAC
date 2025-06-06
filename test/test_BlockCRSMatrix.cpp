@@ -558,5 +558,49 @@ TEST(test_ILU0_rand){
 
 } // test_ILU0_rand
 
+TEST(test_Dense){
+
+  // SPARSITY PATTERN
+  // | X 0 X |
+  // | 0 0 0 |
+  // | 0 X 0 |
+  int n_col[4] = {0, 2, 2, 3};
+  int col_index[3] = {0, 2, 1};
+  lac_BlockCRSMatrix *p_Mat;
+  lac_BlockCRSInit(&p_Mat, 6, 3, 3, col_index, n_col);
+  for (int ii = 0; ii < 18; ++ii)
+    p_Mat->data[ii] = ii + 1;
+  
+  double A_23[54] = { 1,  2,  3,  0,  0,  0,  7,  8,  9,
+                      4,  5,  6,  0,  0,  0, 10, 11, 12,
+                      0,  0,  0,  0,  0,  0,  0,  0,  0,
+                      0,  0,  0,  0,  0,  0,  0,  0,  0,
+                      0,  0,  0, 13, 14, 15,  0,  0,  0,
+                      0,  0,  0, 16, 17, 18,  0,  0,  0};
+  double A_32[54] = { 1,  2,  0,  0,  7,  8,
+                      3,  4,  0,  0,  9, 10,
+                      5,  6,  0,  0, 11, 12,
+                      0,  0,  0,  0,  0,  0, 
+                      0,  0,  0,  0,  0,  0, 
+                      0,  0,  0,  0,  0,  0, 
+                      0,  0, 13, 14,  0,  0, 
+                      0,  0, 15, 16,  0,  0, 
+                      0,  0, 17, 18,  0,  0};
+
+  double *A;
+  lac_BlockCRSDense(p_Mat, 2, 3, &A);
+  for (int ii = 0; ii < 54; ++ii){
+    ASSERT_EQUAL(A[ii], A_23[ii]);
+  } // for
+  delete[] A;
+
+  lac_BlockCRSDense(p_Mat, 3, 2, &A);
+  for (int ii = 0; ii < 54; ++ii){
+    ASSERT_EQUAL(A[ii], A_32[ii]);
+  } // for
+  delete[] A;
+
+} // test_Dense
+  
 TEST_MAIN()
 

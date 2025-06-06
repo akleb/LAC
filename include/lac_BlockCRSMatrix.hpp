@@ -131,6 +131,17 @@ int lac_BlockCRS_ILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_Bloc
 int lac_BlockCRS_LUForwardBackwardSub(lac_BlockCRSMatrix *p_LU, const int block_n, const double *b, double *x);
 
 /**
+ * @brief Generates a row major dense matrix from a sparse matrix
+ *
+ * @param p_Mat the sparse matrix
+ * @param block_n the number of rows in each block
+ * @param block_m the number of columns in each block block_n * block_m ==
+ * p_Mat->n_block
+ * @param A set to the dense matrix. This allocates the data
+ */
+int lac_BlockCRSDense(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m, double **A);
+
+/**
  * @brief prints out the block CRS Matrix
  *
  * @param p_Mat the matrix to print

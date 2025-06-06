@@ -275,6 +275,36 @@ int lac_BlockCRS_LUForwardBackwardSub(lac_BlockCRSMatrix *p_LU, const int block_
 
 } // lac_BlockCRSLUForwardBackwardSub
   
+int lac_BlockCRSDense(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m, double **A){
+
+  if (block_n * block_m != p_Mat->n_block) {
+    LAC_ERR("block_n * block_m != p_Mat->n_block, %d * %d != %d", block_n, block_m, p_Mat->n_block);
+    return lac_VALUE_ERROR;
+  } // if
+
+  *A = new double[p_Mat->n_block * p_Mat->n * p_Mat->m];
+  std::memset(*A, 0, sizeof(double) * p_Mat->n_block * p_Mat->n * p_Mat->m);
+
+  const int tot_cols = block_m * p_Mat->m;
+  // Loop through non-zero entries in the block matrix
+  for (int row = 0; row < p_Mat->n; ++row){
+    for (int ii = p_Mat->n_col[row]; ii < p_Mat->n_col[row + 1]; ++ii){
+      const int col = p_Mat->col_index[ii];
+      // loop through the current non-zero block and add the entries to the
+      // dense matrix
+      for (int block_row = 0; block_row < block_n; ++block_row){
+        for(int block_col = 0; block_col < block_m; ++block_col){
+          (*A)[tot_cols * (row * block_n + block_row) + block_m * col + block_col] 
+              = p_Mat->data[p_Mat->n_block * ii + block_m * block_row + block_col];
+        } // for
+      } // for
+    } // for
+  } // for
+
+  return lac_OK;
+
+} // lac_BlockCRSDense
+  
 int lac_BlockCRSPrint(lac_BlockCRSMatrix *p_Mat, const int block_n, const int block_m){
   const int n = p_Mat->n;
   const int m = p_Mat->m;
