@@ -38,6 +38,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 #add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
 #add_link_options(-fsanitize=address)
+#add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer)
+#add_link_options(-fsanitize=undefined)
 
 # --------------
 #  Unit Testing

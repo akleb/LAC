@@ -32,6 +32,18 @@ int lac_L2Norm(const double *a, const int n, double *norm);
 int lac_L2NormAllReduce(const double *a, const int n, double *norm);
 
 /**
+ * @brief computes the L2 norm of a vector across all procs in MPI_COMM_WORLD.
+ * This causes a sync across all procs. It always sums the data in the same
+ * order, so it will match a single proc call of lac_L1Norm. Should only be used
+ * for debugging
+ *
+ * @param a the vector to compute the L2 norm across
+ * @param n the number of elements in the array on this processor
+ * @param norm where the final reduced sum is stored
+ */
+int lac_DeterministicL2NormAllReduce(const double *a, const int n, double *norm);
+
+/**
  * @brief computes the L2 norm of a
  *
  * @param a the vector
@@ -49,6 +61,18 @@ int lac_L1Norm(const double *a, const int n, double *norm);
  * @param norm where the final reduced sum is stored
  */
 int lac_L1NormAllReduce(const double *a, const int n, double *norm);
+
+/**
+ * @brief computes the L1 norm of a vector across all procs in MPI_COMM_WORLD.
+ * This causes a sync across all procs. It always sums the data in the same
+ * order, so it will match a single proc call of lac_L1Norm. Should only be used
+ * for debugging
+ *
+ * @param a the vector to compute the L1 norm across
+ * @param n the number of elements in the array on this processor
+ * @param norm where the final reduced sum is stored
+ */
+int lac_DeterministicL1NormAllReduce(const double *a, const int n, double *norm);
 
 #endif
 
