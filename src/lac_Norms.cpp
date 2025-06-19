@@ -14,6 +14,7 @@
 #include "lac_Norms.hpp"
 #include "mpi.h"
 #include <cmath>
+#include <cstring>
 
 int _lac_GatherFullArray(const double *a, const int n, double **full_a, int *full_n){
   int size, rank;
