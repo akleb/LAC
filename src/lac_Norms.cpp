@@ -9,35 +9,13 @@
  *
  */
 
+#include "lac_Default.hpp"
 #include "lac_MPI.hpp"
 #include "lac_Error.hpp"
 #include "lac_Norms.hpp"
 #include "mpi.h"
 #include <cmath>
 #include <cstring>
-
-int _lac_GatherFullArray(const double *a, const int n, double **full_a, int *full_n){
-  int size, rank;
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  int *each_n = new int[size];
-  int *disps = new int[size];
-  std::memset(each_n, 0, sizeof(int) * size);
-  MPI_Gather(&n, 1, MPI_INT, each_n, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  disps[0] = 0;
-  for (int ii = 1; ii < size; ++ii)
-    disps[ii] = disps[ii - 1] + each_n[ii - 1];
-  *full_n = disps[size - 1] + each_n[size - 1];
-  *full_a = (rank == 0) ? new double[*full_n] : nullptr;
-  MPI_Gatherv(a, n, MPI_DOUBLE, *full_a, each_n, disps, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-  delete[] each_n;
-  delete[] disps;
-
-  return lac_OK;
-
-} // _lac_GatherFullArray
 
 int lac_L2Norm(const double *a, const int n, double *norm){
   *norm = 0;
@@ -70,7 +48,11 @@ int lac_DeterministicL2NormAllReduce(const double *a, const int n, double *norm)
   int ierr = _lac_GatherFullArray(a, n, &full_a, &full_n);
   if (ierr != lac_OK) return ierr;
 
-  ierr = lac_L2Norm(full_a, full_n, norm);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0)
+    ierr = lac_L2Norm(full_a, full_n, norm);
+  MPI_Bcast(&ierr, 1, MPI_INT, 0, MPI_COMM_WORLD);
   if (ierr != lac_OK) return ierr;
 
   MPI_Bcast(norm, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -105,7 +87,11 @@ int lac_DeterministicL1NormAllReduce(const double *a, const int n, double *norm)
   int ierr = _lac_GatherFullArray(a, n, &full_a, &full_n);
   if (ierr != lac_OK) return ierr;
 
-  ierr = lac_L1Norm(full_a, full_n, norm);
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0)
+    ierr = lac_L1Norm(full_a, full_n, norm);
+  MPI_Bcast(&ierr, 1, MPI_INT, 0, MPI_COMM_WORLD);
   if (ierr != lac_OK) return ierr;
 
   MPI_Bcast(norm, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);

@@ -92,5 +92,36 @@ TEST(test_basic){
 
 } // test_basic
 
-TEST_MAIN()
+TEST(test_parallel){
+  int size, rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+  double a[5], b[5];
+  for (int ii = 0; ii < 5; ++ii){
+    a[ii] = 5 * rank + ii;
+    b[ii] = -(5 * rank + ii) + 8.2;
+  } // for
+
+  double dot = 0;
+  for (int ii = 0; ii < 5 * size; ++ii){
+    dot += ii * (8.2 - ii);
+  } // for
+
+  double val;
+  int ierr = lac_DotProductAllReduce(a, b, 5, &val);
+  if (ierr != lac_OK){
+    ASSERT_FALSE(true);
+  } // if
+  ASSERT_ALMOST_EQUAL(dot, val, 1e-13 * fabs(dot));
+
+  ierr = lac_DeterministicDotProductAllReduce(a, b, 5, &val);
+  if (ierr != lac_OK){
+    ASSERT_FALSE(true);
+  } // if
+  ASSERT_ALMOST_EQUAL(dot, val, 1e-13 * fabs(dot));
+
+} // test_parallel
+ 
+TEST_PARALLEL_MAIN()
 

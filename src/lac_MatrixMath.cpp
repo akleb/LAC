@@ -103,4 +103,33 @@ int lac_DotProductAllReduce(const double *a, const double *b, const int n, doubl
   return lac_OK;
 
 } // lac_DotProductAllReduce
+ 
+int lac_DeterministicDotProductAllReduce(const double *a, const double *b, const int n, double *dot){
+  double *full_a, *full_b;
+  int full_n;
+  int ierr = _lac_GatherFullArray(a, n, &full_a, &full_n);
+  MPI_Bcast(&ierr, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if (ierr != lac_OK) return ierr;
+
+  ierr = _lac_GatherFullArray(b, n, &full_b, &full_n);
+  MPI_Bcast(&ierr, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if (ierr != lac_OK) return ierr;
+
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0){
+    ierr = lac_DotProduct(full_a, full_b, full_n, dot);
+  } // if
+  MPI_Bcast(&ierr, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if (ierr != lac_OK) return ierr;
+
+  MPI_Bcast(dot, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+  delete[] full_a;
+  delete[] full_b;
+
+  return lac_OK;
+
+} // lac_DotProductAllReduce
 

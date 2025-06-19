@@ -82,4 +82,16 @@ int lac_DotProduct(const double *a, const double *b, const int n, double *dot);
  */
 int lac_DotProductAllReduce(const double *a, const double *b, const int n, double *dot);
 
+/**
+ * @brief computes the dot product in a determinsitic manner by first gathering
+ * all the data onto on processor. Ensures the order of the summation is always
+ * the same and matches single proc cases. Should only be used in debugging.
+ *
+ * @param a first vector to be dotted
+ * @param b second vector to be dotted
+ * @param n the number of elements in each vector
+ * @param dot the computed dot product
+ */
+int lac_DeterministicDotProductAllReduce(const double *a, const double *b, const int n, double *dot);
+
 #endif

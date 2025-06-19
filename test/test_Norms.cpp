@@ -11,8 +11,8 @@
 
 #include "unit_test_framework.h"
 #include "lac_Norms.hpp"
-#include "lac_Error.hpp"
-#include <cmath>
+#include "lac_Error.hpp" 
+#include <cmath> 
 #include <cstring>
 
 TEST(test_L1){
@@ -56,7 +56,7 @@ TEST(test_L2){
 
 } // test_L2
 
-TEST(test_Parallel){
+TEST(test_parallel){
   int size, rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
