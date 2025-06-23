@@ -185,7 +185,7 @@ int lac_BlockCRS_ILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_Bloc
 
   // For each block row
   for (int ii = 1; ii < n; ++ii){
-    for (int kk_i = n_col[ii], kk = col_index[kk_i]; kk < ii; kk = col_index[++kk_i]){
+    for (int kk_i = n_col[ii], kk = col_index[kk_i]; kk < ii && kk_i < n_col[ii + 1]; kk = col_index[++kk_i]){
 
       // skip if (i, k) is zero
       if (lac_BlockCRSGetData(p_LU, ii, kk, &a_ik) == lac_INDEX_ZERO_ENTRY)
@@ -206,10 +206,10 @@ int lac_BlockCRS_ILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_Bloc
       for (int jj_i = kk_i + 1; jj_i < n_col[ii + 1]; ++jj_i){
         const int jj = col_index[jj_i];
 
-        if (lac_BlockCRSGetData(p_LU, ii, jj, &a_ij) == lac_INDEX_ZERO_ENTRY)
-          return lac_INDEX_ZERO_ENTRY;
         if (lac_BlockCRSGetData(p_LU, kk, jj, &a_kj) == lac_INDEX_ZERO_ENTRY)
           continue;
+        if (lac_BlockCRSGetData(p_LU, ii, jj, &a_ij) == lac_INDEX_ZERO_ENTRY)
+          return lac_INDEX_ZERO_ENTRY;
 
         lac_MatRowMatRowMult(a_ik, a_kj, block_n, block_n, block_n, working);
         for (int entry = 0; entry < block_n * block_n; ++entry)
