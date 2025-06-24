@@ -13,6 +13,7 @@
 #include "lac_Error.hpp"
 #include "lac_BlockCRSMatrix.hpp"
 #include "lac_MatrixMath.hpp"
+#include "lac_Direct.hpp"
 #include "lac_Norms.hpp"
 #include <cstring>
 
@@ -558,6 +559,216 @@ TEST(test_ILU0_rand){
 
 } // test_ILU0_rand
 
+TEST(test_dense_ILU0){
+  const int n = 4;
+  // MATRIX:
+  // |  2 -1  0  0 | 
+  // | -1  2 -1  0 |
+  // |  0 -1  2 -1 |
+  // |  0  0 -1  2 |
+  
+  int n_nzero = 16;
+  int col_index[16] = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3};
+  int n_col[5] = {0, 4, 8, 12, 16};
+
+  lac_BlockCRSMatrix *p_Mat;
+  lac_BlockCRSInit(&p_Mat, 9, 4, 4, col_index, n_col);
+  double A[12 * 12];
+  std::memset(A, 0, sizeof(double) * 12 * 12);
+
+  double *data;
+  srand(0);
+  for (int row = 0; row < 4; ++row){
+    for (int col = 0; col < 4; ++col){
+      if (abs(row - col) > 1) continue;
+      LAC_BLOCKCRSGETDATA(p_Mat, row, col, data);
+
+      double val = (row == col) ? 2 : -1;
+      data[0] = val;
+      data[4] = val;
+      data[1] = ((double) rand() / RAND_MAX) * 0.5;
+      data[3] = -data[1];
+      data[2] = ((double) rand() / RAND_MAX) * 0.5;
+      data[6] = -data[2];
+      data[5] = ((double) rand() / RAND_MAX) * 0.5;
+      data[7] = -data[5];
+      data[8] = val;
+
+      A[12 * (3 *row + 0) + 3 * col + 0] = data[0];
+      A[12 * (3 *row + 0) + 3 * col + 1] = data[1];
+      A[12 * (3 *row + 0) + 3 * col + 2] = data[2];
+      A[12 * (3 *row + 1) + 3 * col + 0] = data[3];
+      A[12 * (3 *row + 1) + 3 * col + 1] = data[4];
+      A[12 * (3 *row + 1) + 3 * col + 2] = data[5];
+      A[12 * (3 *row + 2) + 3 * col + 0] = data[6];
+      A[12 * (3 *row + 2) + 3 * col + 1] = data[7];
+      A[12 * (3 *row + 2) + 3 * col + 2] = data[8];
+
+    } // for
+  } // for
+
+  int n_col_nb[13] = {0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120, 132, 144};
+  int col_index_nb[12*12] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
+                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+  lac_BlockCRSMatrix *p_no_block;
+  lac_BlockCRSInit(&p_no_block, 1, 12, 12, col_index_nb, n_col_nb);
+  std::memcpy(p_no_block->data, A, sizeof(double) * 12 * 12);
+
+  lac_BlockCRSMatrix *p_LU, *p_LU_nb;
+  lac_BlockCRSInit(&p_LU, 9, 4, 4, col_index, n_col);
+  lac_BlockCRSInit(&p_LU_nb, 1, 12, 12, col_index_nb, n_col_nb);
+
+  lac_BlockCRS_ILU0(p_Mat, 3, p_LU);
+  lac_BlockCRS_ILU0(p_no_block, 1, p_LU_nb);
+  double A_inv[12 * 12];
+  lac_InvertMatrix(A, 12, A_inv);
+
+  //lac_BlockCRSPrint(p_LU, 3, 3);
+  //lac_BlockCRSPrint(p_LU_nb, 1, 1);
+  
+  double col[12];
+  for (int ii = 0; ii < 12; ++ii){
+    double x[12];
+    std::memset(x, 0, sizeof(double) * 12);
+    x[ii] = 1;
+
+    lac_BlockCRS_LUForwardBackwardSub(p_LU_nb, 1, x, col);
+    for (int check = 0; check < 12; ++check){
+      ASSERT_ALMOST_EQUAL(col[check], A_inv[12 * check + ii], 1e-10);
+    } // for
+  } // for
+    
+  for (int ii = 0; ii < 12; ++ii){
+    double x[12];
+    std::memset(x, 0, sizeof(double) * 12);
+    x[ii] = 1;
+
+    lac_BlockCRS_LUForwardBackwardSub(p_LU, 3, x, col);
+    for (int check = 0; check < 12; ++check){
+      ASSERT_ALMOST_EQUAL(col[check], A_inv[12 * check + ii], 1e-10);
+    } // for
+  } // for
+
+  lac_BlockCRSFree(&p_Mat);
+  lac_BlockCRSFree(&p_no_block);
+  lac_BlockCRSFree(&p_LU);
+  lac_BlockCRSFree(&p_LU_nb);
+
+  return;
+
+} // test_dense_ILU0
+
+TEST(test_ILU0_BlockSize){
+  // MATRIX:
+  // |  2 -1  0  0 | 
+  // | -1  2 -1  0 |
+  // |  0 -1  2 -1 |
+  // |  0  0 -1  2 |
+  
+  int n_nzero = 10;
+  int col_index[10] = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
+  int n_col[5] = {0, 2, 5, 8, 10};
+
+  lac_BlockCRSMatrix *p_Mat;
+  lac_BlockCRSInit(&p_Mat, 9, 4, 4, col_index, n_col);
+
+  int n_zero = 10 * 9;
+  int col_index_nb[10 * 9] = {0, 1, 2, 3, 4, 5, 
+                              0, 1, 2, 3, 4, 5, 
+                              0, 1, 2, 3, 4, 5, 
+                              0, 1, 2, 3, 4, 5, 6, 7, 8,
+                              0, 1, 2, 3, 4, 5, 6, 7, 8,
+                              0, 1, 2, 3, 4, 5, 6, 7, 8,
+                              3, 4, 5, 6, 7, 8, 9, 10, 11,
+                              3, 4, 5, 6, 7, 8, 9, 10, 11,
+                              3, 4, 5, 6, 7, 8, 9, 10, 11,
+                              6, 7, 8, 9, 10, 11,
+                              6, 7, 8, 9, 10, 11,
+                              6, 7, 8, 9, 10, 11};
+  int n_col_nb[13] = {0, 6, 12, 18, 27, 36, 45, 54, 63, 72, 78, 84, 90};
+  lac_BlockCRSMatrix * p_Mat_nb;
+  lac_BlockCRSInit(&p_Mat_nb, 1, 12, 12, col_index_nb, n_col_nb);
+
+
+  double *data, *data_nb;
+  srand(0);
+  for (int row = 0; row < 4; ++row){
+    for (int col = 0; col < 4; ++col){
+      if (abs(row - col) > 1) continue;
+      LAC_BLOCKCRSGETDATA(p_Mat, row, col, data);
+
+      double val = (row == col) ? 2 : -1;
+      data[0] = val;
+      data[4] = val;
+      data[1] = ((double) rand() / RAND_MAX) * 0.5;
+      data[3] = -data[1];
+      data[2] = ((double) rand() / RAND_MAX) * 0.5;
+      data[6] = -data[2];
+      data[5] = ((double) rand() / RAND_MAX) * 0.5;
+      data[7] = -data[5];
+      data[8] = val;
+
+      LAC_BLOCKCRSGETDATA(p_Mat_nb, 3 * row + 0, 3 * col + 0, data_nb);
+      data_nb[0] = data[0];
+      LAC_BLOCKCRSGETDATA(p_Mat_nb, 3 * row + 0, 3 * col + 1, data_nb);
+      data_nb[0] = data[1];
+      LAC_BLOCKCRSGETDATA(p_Mat_nb, 3 * row + 0, 3 * col + 2, data_nb);
+      data_nb[0] = data[2];
+      LAC_BLOCKCRSGETDATA(p_Mat_nb, 3 * row + 1, 3 * col + 0, data_nb);
+      data_nb[0] = data[3];
+      LAC_BLOCKCRSGETDATA(p_Mat_nb, 3 * row + 1, 3 * col + 1, data_nb);
+      data_nb[0] = data[4];
+      LAC_BLOCKCRSGETDATA(p_Mat_nb, 3 * row + 1, 3 * col + 2, data_nb);
+      data_nb[0] = data[5];
+      LAC_BLOCKCRSGETDATA(p_Mat_nb, 3 * row + 2, 3 * col + 0, data_nb);
+      data_nb[0] = data[6];
+      LAC_BLOCKCRSGETDATA(p_Mat_nb, 3 * row + 2, 3 * col + 1, data_nb);
+      data_nb[0] = data[7];
+      LAC_BLOCKCRSGETDATA(p_Mat_nb, 3 * row + 2, 3 * col + 2, data_nb);
+      data_nb[0] = data[8];
+    } // for
+  } // for
+
+  double b[12];
+  for (int ii = 0; ii < 12; ++ii)
+    b[ii] = (double) rand() / RAND_MAX - 0.5;
+
+  lac_BlockCRSMatrix *p_LU;
+  lac_BlockCRSInit(&p_LU, 9, 4, 4, col_index, n_col);
+  lac_BlockCRS_ILU0(p_Mat, 3, p_LU);
+  double x[12];
+  lac_BlockCRS_LUForwardBackwardSub(p_LU, 3, b, x);
+
+
+  lac_BlockCRSMatrix *p_LU_nb;
+  lac_BlockCRSInit(&p_LU_nb, 1, 12, 12, col_index_nb, n_col_nb);
+  lac_BlockCRS_ILU0(p_Mat_nb, 1, p_LU_nb);
+  double x_nb[12];
+  lac_BlockCRS_LUForwardBackwardSub(p_LU, 3, b, x_nb);
+
+  for (int ii = 0; ii < 12; ++ii){
+    ASSERT_ALMOST_EQUAL(x[ii], x_nb[ii], 1e-10);
+  } // for
+
+  lac_BlockCRSFree(&p_Mat);
+  lac_BlockCRSFree(&p_Mat_nb);
+  lac_BlockCRSFree(&p_LU);
+  lac_BlockCRSFree(&p_LU_nb);
+
+  return;
+
+} // test_ILU0_BlockSize
+  
 TEST(test_Dense){
 
   // SPARSITY PATTERN
@@ -598,7 +809,11 @@ TEST(test_Dense){
   for (int ii = 0; ii < 54; ++ii){
     ASSERT_EQUAL(A[ii], A_32[ii]);
   } // for
+    
   delete[] A;
+  lac_BlockCRSFree(&p_Mat);
+
+  return;
 
 } // test_Dense
   

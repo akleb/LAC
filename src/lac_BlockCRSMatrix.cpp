@@ -170,36 +170,97 @@ int lac_BlockCRSTranspose(lac_BlockCRSMatrix *p_Mat, const int block_n, const in
 
 } // lac_BlockCRSTranspose
 
+  
+//int lac_BlockCRS_ILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_BlockCRSMatrix *p_LU){
+//  const int n_block = p_A->n_block;
+//  const int n = p_A->n;
+//  const int *n_col = p_A->n_col;
+//  const int *col_index = p_A->col_index;
+//
+//  std::memcpy(p_LU->data, p_A->data, sizeof(double) * p_A->n_block * p_A->n_nzero);
+//  double *a_ik= nullptr;
+//  double *a_ij = nullptr;
+//  double *a_kj = nullptr;
+//  double *a_kk_i = new double[block_n * block_n];
+//  double *working = new double[block_n * block_n];
+//
+//  // For each block row
+//  for (int ii = 1; ii < n; ++ii){
+//    for (int kk_i = n_col[ii], kk = col_index[kk_i]; kk < ii && kk_i < n_col[ii + 1]; kk = col_index[++kk_i]){
+//
+//      // skip if (i, k) is zero
+//      if (lac_BlockCRSGetData(p_LU, ii, kk, &a_ik) == lac_INDEX_ZERO_ENTRY)
+//        return lac_INDEX_ZERO_ENTRY;
+//
+//      if (lac_BlockCRSGetData(p_LU, kk, kk, &a_ij) == lac_INDEX_ZERO_ENTRY)
+//        return lac_INDEX_ZERO_ENTRY;
+//       
+//      lac_InvertMatrix(a_ij, block_n, a_kk_i);
+//
+//      // This computes the terms in the lower diagonal portion that gives the
+//      // cancel
+//      lac_MatRowMatRowMult(a_ik, a_kk_i, block_n, block_n, block_n, working);
+//      std::memcpy(a_ik, working, n_block * sizeof(double));
+//
+//      // Then we apply this transformation to other entries in this row before
+//      // doing more cancels
+//      for (int jj_i = kk_i + 1; jj_i < n_col[ii + 1]; ++jj_i){
+//        const int jj = col_index[jj_i];
+//
+//        if (lac_BlockCRSGetData(p_LU, kk, jj, &a_kj) == lac_INDEX_ZERO_ENTRY)
+//          continue;
+//        if (lac_BlockCRSGetData(p_LU, ii, jj, &a_ij) == lac_INDEX_ZERO_ENTRY)
+//          return lac_INDEX_ZERO_ENTRY;
+//
+//        lac_MatRowMatRowMult(a_ik, a_kj, block_n, block_n, block_n, working);
+//        for (int entry = 0; entry < block_n * block_n; ++entry)
+//            a_ij[entry] -= working[entry];
+//      } // for
+//    } // for
+//  } // for
+//
+//  delete[] a_kk_i;
+//  delete[] working;
+//
+//  return lac_OK;
+//
+//} // lac_BlockCRS_ILU0
+  
 int lac_BlockCRS_ILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_BlockCRSMatrix *p_LU){
-  const int n_block = p_A->n_block;
   const int n = p_A->n;
   const int *n_col = p_A->n_col;
   const int *col_index = p_A->col_index;
 
   std::memcpy(p_LU->data, p_A->data, sizeof(double) * p_A->n_block * p_A->n_nzero);
-  double *a_ik= nullptr;
-  double *a_ij = nullptr;
+  double *a_ik = nullptr;
+  double *a_kk= nullptr;
   double *a_kj = nullptr;
-  double *a_kk_i = new double[block_n * block_n];
-  double *working = new double[block_n * block_n];
+  double *a_ij = nullptr;
 
   // For each block row
-  for (int ii = 1; ii < n; ++ii){
-    for (int kk_i = n_col[ii], kk = col_index[kk_i]; kk < ii && kk_i < n_col[ii + 1]; kk = col_index[++kk_i]){
-
-      // skip if (i, k) is zero
-      if (lac_BlockCRSGetData(p_LU, ii, kk, &a_ik) == lac_INDEX_ZERO_ENTRY)
-        return lac_INDEX_ZERO_ENTRY;
-
-      if (lac_BlockCRSGetData(p_LU, kk, kk, &a_ij) == lac_INDEX_ZERO_ENTRY)
-        return lac_INDEX_ZERO_ENTRY;
-       
-      lac_InvertMatrix(a_ij, block_n, a_kk_i);
-
-      // This computes the terms in the lower diagonal portion that gives the
-      // cancel
-      lac_MatRowMatRowMult(a_ik, a_kk_i, block_n, block_n, block_n, working);
-      std::memcpy(a_ik, working, n_block * sizeof(double));
+  for (int ii = 0; ii < n; ++ii){
+    // Do each row in the block infividually
+    int kk_i = n_col[ii];
+    for (int kk = col_index[kk_i]; kk < ii && kk_i < n_col[ii + 1]; kk = col_index[++kk_i]){
+      // This should not be zero because we are iterating on the col_index
+      // above.
+      LAC_BLOCKCRSGETDATA(p_LU, ii, kk, a_ik);
+      // This should also never be zero because it is the diagonal entry
+      LAC_BLOCKCRSGETDATA(p_LU, kk, kk, a_kk);
+      // Need to iterate through the actual elements in this specific block
+      // NEVER HAVE TO WORRY ABOUT THE FIRST ROW BECAUSE THERE WILL BE NO FULL K
+      // BLOCKS, THE FIRST BLOCK IN THE ROW WILL BE DIAGONAL
+      for (int row = 0; row < block_n; ++row){
+        // The index of k in this block
+        for (int col = 0; col < block_n; ++col){
+          a_ik[block_n * row + col] /= a_kk[block_n * col + col];
+          // Need to do the j update for this block while we are doing the k
+          // stuff
+          for (int jj = col + 1; jj < block_n; ++jj){
+            a_ik[block_n * row + jj] -= a_ik[block_n * row + col] * a_kk[block_n * col + jj];
+          } // for
+        } // for
+      } // for
 
       // Then we apply this transformation to other entries in this row before
       // doing more cancels
@@ -208,23 +269,62 @@ int lac_BlockCRS_ILU0(const lac_BlockCRSMatrix *p_A, const int block_n, lac_Bloc
 
         if (lac_BlockCRSGetData(p_LU, kk, jj, &a_kj) == lac_INDEX_ZERO_ENTRY)
           continue;
-        if (lac_BlockCRSGetData(p_LU, ii, jj, &a_ij) == lac_INDEX_ZERO_ENTRY)
-          return lac_INDEX_ZERO_ENTRY;
-
-        lac_MatRowMatRowMult(a_ik, a_kj, block_n, block_n, block_n, working);
-        for (int entry = 0; entry < block_n * block_n; ++entry)
-            a_ij[entry] -= working[entry];
+        // This should always hit because we are iterating over the col_index
+        // above
+        LAC_BLOCKCRSGETDATA(p_LU, ii, jj, a_ij);
+        // operate on each element in the block individually
+        for (int row = 0; row < block_n; row++){
+          // col_1 is the columns in the ik block each column in this needs to
+          // operate on every element in the current row
+          for (int col_1 = 0; col_1 < block_n; col_1++){
+            // cols  of a_ij
+            for (int col = 0; col < block_n; ++col){
+              a_ij[block_n * row + col] -= a_ik[block_n * row + col_1] * a_kj[block_n * col_1 + col];
+            } // for
+          } // for
+        } // for
       } // for
     } // for
-  } // for
+    
+    if (col_index[kk_i] != ii){
+      LAC_ERR("Missing diagonal element in BlockCRSMatrix during ILU0 row %d\n", ii);
+      return lac_INDEX_ZERO_ENTRY;
+    } // if
+      
+    LAC_BLOCKCRSGETDATA(p_LU, ii, ii, a_kk);
+    // Need to do the "diagonal block" specially 
+    for (int row = 1; row < block_n; ++row){
+      for (int kk = 0; kk < row; ++kk){
+        a_kk[block_n * row + kk] /= a_kk[block_n * kk + kk];
+        // propagating changes within this block
+        for (int jj = kk + 1; jj < block_n; ++jj){
+          a_kk[block_n * row + jj] -= a_kk[block_n * row + kk] * a_kk[block_n * kk + jj];
+        } // for
+      } // for
+    } // for
+    // Need to propogate the changes we just made down the rest of the rows
+    for (int jj_i = kk_i + 1; jj_i < n_col[ii + 1]; ++jj_i){
+      int jj = col_index[jj_i];
+      LAC_BLOCKCRSGETDATA(p_LU, ii, jj, a_ij);
+      a_ik = a_kk;
+      for (int row = 1; row < block_n; ++row){
+        // This is the index in k in the diagonal block
+        for (int col_1 = 0; col_1 < row; ++col_1){
+          // This is the index across all columns in j block because they all
+          // need to be updated
+          for (int col = 0; col < block_n; ++col){
+            a_ij[block_n * row + col] -= a_kk[block_n * row + col_1] * a_ij[block_n * col_1 + col];
+          } // for
+        } // for
+      } // for
 
-  delete[] a_kk_i;
-  delete[] working;
+    } // for
+  } // for
 
   return lac_OK;
 
 } // lac_BlockCRS_ILU0
-  
+
 int lac_BlockCRS_LUForwardBackwardSub(lac_BlockCRSMatrix *p_LU, const int block_n, const double *b, double *x){
   const int n = p_LU->n;
   const int *n_col = p_LU->n_col;
@@ -239,7 +339,7 @@ int lac_BlockCRS_LUForwardBackwardSub(lac_BlockCRSMatrix *p_LU, const int block_
   // Ly = b
   std::memcpy(x, b, sizeof(double) * n * block_n);
   for (int row = 0; row < n; ++row){
-    for (int col_i = n_col[row], col = col_index[col_i]; col < row; col = col_index[++col_i]){
+    for (int col_i = n_col[row], col = col_index[col_i]; col < row && col_i < n_col[row + 1]; col = col_index[++col_i]){
       if (lac_BlockCRSGetData(p_LU, row, col, &data) == lac_INDEX_ZERO_ENTRY)
         return lac_INDEX_ZERO_ENTRY;
       // matrix multiply 
@@ -247,10 +347,11 @@ int lac_BlockCRS_LUForwardBackwardSub(lac_BlockCRSMatrix *p_LU, const int block_
       for (int ii = 0; ii < block_n; ++ii)
         x[block_n * row + ii] -= working[ii]; 
     } // for
-    if (lac_BlockCRSGetData(p_LU, row, row, &data) == lac_INDEX_ZERO_ENTRY)
-      return lac_INDEX_ZERO_ENTRY;
+      
+    // Should always have something on the diagonal
+    LAC_BLOCKCRSGETDATA(p_LU, row, row, data);
     lac_PLForwardSub(data, P, block_n, x + block_n * row, working);
-    std::memcpy(x + block_n * row, working, block_n);
+    std::memcpy(x + block_n * row, working, sizeof(double) * block_n);
   } // for
 
   //Ux = y
